@@ -93,7 +93,11 @@
     $('#bStart').addEventListener('click', function () { G.start(); });
     $('#bigStart').addEventListener('click', function () { G.start(); });
     $('#bPause').addEventListener('click', function () { G.togglePause(); });
-    $('#bReset').addEventListener('click', function () { G.reset(G.state !== 'ready', false); });
+    $('#bReset').addEventListener('click', function () { G.stopRun(true); G.reset(G.state !== 'ready', false); });
+    // mode run : les niveaux à la suite
+    const runToggle = function () { if (G.run) G.stopRun(); else { UI.hideResults(); G.startRun(); } };
+    $('#bRun').addEventListener('click', runToggle);
+    $('#bigRun').addEventListener('click', runToggle);
 
     const sp = $('#speed');
     sp.value = G.settings.speed;
@@ -119,6 +123,12 @@
     $('#cToggle').addEventListener('click', function () { MR.Packs.show('packs'); });
     $('#bPacks').addEventListener('click', function () { MR.Packs.show('packs'); });
     $('#bColl').addEventListener('click', function () { MR.Packs.show('coll'); });
+    // aide des paquets : cachée derrière un petit « ? »
+    $('#cardsHelpBtn').addEventListener('click', function () {
+      const b = $('#cardsHelpBtn'), open = b.getAttribute('aria-expanded') !== 'true';
+      b.setAttribute('aria-expanded', String(open));
+      $('#cardsHelp').hidden = !open;
+    });
     $('#odds').innerHTML = MR.RARITIES.map(function (r) {
       return '<li style="--rc:' + r.color + '"><b>' + String(r.chance).replace('.', ',') + ' %</b>' + MR.esc(r.name) + '</li>';
     }).join('');
@@ -140,8 +150,12 @@
 
     buildEditor();
 
-    $('#resReplay').addEventListener('click', function () { UI.hideResults(); G.start(); });
-    $('#resClose').addEventListener('click', function () { UI.hideResults(); });
+    $('#resReplay').addEventListener('click', function () { stopRunTimer(); UI.hideResults(); G.start(); });
+    $('#resClose').addEventListener('click', function () {
+      stopRunTimer();
+      if (G.run) G.stopRun(true);
+      UI.hideResults();
+    });
 
     document.addEventListener('keydown', onKey);
 
@@ -156,6 +170,7 @@
     $('#sfxOn').checked = G.settings.sfx;
     $('#musicVol').value = G.settings.musicVol;
     $('#sfxVol').value = G.settings.sfxVol;
+    $('#levelSel').value = G.levelDef.id;
     $('#speed').value = G.settings.speed;
     $('#speedOut').textContent = fmtSpeed(G.settings.speed);
     $('#fps').hidden = !G.settings.fps;
@@ -208,11 +223,15 @@
   UI.onState = function () {
     const st = G.state;
     const label = G.paused ? 'Pause' : { ready: 'Prêt', countdown: 'Départ', racing: 'En course', finished: 'Terminé' }[st];
-    $('#status').textContent = label;
+    const R = G.run;
+    $('#status').textContent = R ? 'Run ' + (R.idx + 1) + '/' + R.levels.length + ' · ' + label : label;
     const big = $('#bigStart');
     big.hidden = !(st === 'ready' || st === 'finished');
-    big.textContent = st === 'finished' ? '↺ Rejouer' : '▶ Lancer la course';
+    big.textContent = R && st === 'finished' ? (R.done ? '↺ Nouvelle run' : '▶ Niveau suivant') : st === 'finished' ? '↺ Rejouer' : '▶ Lancer la course';
+    $('#bigRun').hidden = big.hidden || !!R;
     $('#bStart').textContent = st === 'ready' ? '▶ Lancer' : '↺ Rejouer';
+    $('#bRun').textContent = R ? '■ Arrêter la run' : '🏁 Mode run : tous les niveaux à la suite';
+    $('#bRun').classList.toggle('on', !!R);
     const bp = $('#bPause');
     bp.disabled = !(st === 'racing' || st === 'countdown');
     bp.textContent = G.paused ? '▶ Reprendre' : '❚❚ Pause';
@@ -620,8 +639,10 @@
       (winner ? (surv ? ' · dernière en vie après ' : ' · victoire en ') + MR.formatTime(surv ? G.raceTime : winner.time) : '') +
       (boom ? ' · ' + boom + ' bille' + (boom > 1 ? 's' : '') + ' coincée' + (boom > 1 ? 's' : '') + ' (💥)' : '');
     const rw = $('#resReward');
-    rw.hidden = !G.reward;
-    if (G.reward) rw.innerHTML = '★ Ta bille finit ' + (G.reward.rank === 1 ? '1re' : G.reward.rank + 'e') + ' : tu gagnes <b>' + MR.esc(G.reward.text) + '</b>';
+    let rwHtml = G.reward ? '★ Ta bille finit ' + (G.reward.rank === 1 ? '1re' : G.reward.rank + 'e') + ' : tu gagnes <b>' + MR.esc(G.reward.text) + '</b>' : '';
+    if (G.raceXP) rwHtml += (rwHtml ? '<br>' : '') + '<span class="chip-xp">+' + G.raceXP + ' XP</span> pour cette course' + (rk.length < 30 ? ' (500 XP max avec 30 billes ou plus)' : '');
+    rw.hidden = !rwHtml;
+    rw.innerHTML = rwHtml;
     const top = done.slice(0, 3);
     const order = top.length === 3 ? [1, 0, 2] : top.length === 2 ? [1, 0] : [0];
     const pod = $('#podium');
@@ -657,10 +678,54 @@
     const list = $('#resList');
     list.innerHTML = html;
     list.hidden = rk.length <= 1;
+    renderRun();
     $('#results').hidden = false;
     $('#resReplay').focus();
   };
-  UI.hideResults = function () { $('#results').hidden = true; };
+  UI.hideResults = function () { stopRunTimer(); $('#results').hidden = true; };
+
+  // classement cumulé de la run, puis passage automatique au niveau suivant
+  let runTimer = null;
+  function stopRunTimer() { if (runTimer) { clearInterval(runTimer); runTimer = null; } }
+  function renderRun() {
+    stopRunTimer();
+    const R = G.run, box = $('#resRun'), replay = $('#resReplay'), close = $('#resClose');
+    if (!R) {
+      box.hidden = true;
+      replay.textContent = '↺ Rejouer'; close.textContent = 'Fermer';
+      return;
+    }
+    const st = G.runStandings(), races = R.races;
+    if (R.done) $('#resTitle').textContent = 'Classement de la run';
+    let h = '<h3>' + (R.done ? 'Run terminée · ' + races.length + ' niveaux' : 'Run · niveau ' + (R.idx + 1) + ' sur ' + R.levels.length) +
+      ' <small>points : nombre de billes − place + 1</small></h3><div class="run-table"><div class="run-row run-th"><span>#</span><span>Bille</span>' +
+      races.map(function (r) { return '<span title="' + MR.esc(r.name) + '">N' + r.num + '</span>'; }).join('') + '<span>Total</span></div>';
+    const meIdx = st.findIndex(function (t) { return t.me; });
+    st.forEach(function (t, i) {
+      if (i >= 10 && i !== meIdx) return;
+      h += '<div class="run-row' + (t.me ? ' me' : '') + (i < 3 ? ' p' + (i + 1) : '') + '" style="--c:' + t.color + '"><span>' + (i + 1) + '</span><span class="rn"><i class="dot"></i>' + (t.me ? '★ ' : '') + MR.esc(t.name) + '</span>' +
+        races.map(function (r, k) { return '<span>' + (t.per[k] || 0) + '</span>'; }).join('') + '<span class="rt">' + t.pts + '</span></div>';
+    });
+    h += '</div><h3 class="run-last">Course ' + races.length + ' : niveau ' + G.levelDef.num + ' — ' + MR.esc(G.levelDef.name) + '</h3>';
+    box.innerHTML = h;
+    box.hidden = false;
+    // la run la plus haute : la bille gagnante de la run en tête du podium
+    if (R.done) {
+      close.textContent = 'Fermer';
+      replay.textContent = '↺ Nouvelle run';
+      $('#resSub').textContent = st[0] ? st[0].name + ' gagne la run avec ' + st[0].pts + ' points' : '';
+      return;
+    }
+    close.textContent = 'Arrêter la run';
+    let left = 8;
+    const label = function () { replay.textContent = '▶ Niveau suivant (' + left + ')'; };
+    label();
+    runTimer = setInterval(function () {
+      left--;
+      if (left <= 0) { stopRunTimer(); G.runNext(); return; }
+      label();
+    }, 1000);
+  }
 
   /* ---------------- par image ---------------- */
   let fpsN = 0, fpsT = 0;

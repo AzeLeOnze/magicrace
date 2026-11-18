@@ -548,7 +548,9 @@
       // une vague de lumière part du centre à chaque temps
       const dk = k - W.ringIdx - ph * 16, wave = Math.exp(-dk * dk / 5);
       const p = Math.max(rg.pulse, wave);
-      const a0 = rg.angle + rg.gap, a1 = rg.angle + TAU - rg.gap;
+      // trou fermé (avant le départ, ou juste après la casse du cercle précédent) : cercle complet
+      const shut = first && (W.locked || W.t < (rg.openAt || 0));
+      const a0 = shut ? 0 : rg.angle + rg.gap, a1 = shut ? TAU : rg.angle + TAU - rg.gap;
       const core = first ? [255, 255, 255] : MR.mixRgb(rg.rgb, [255, 255, 255], 0.35 + 0.4 * p);
       ctx.strokeStyle = MR.rgbStr(core, first ? 1 : 0.55 + 0.45 * p);
       ctx.lineWidth = rg.t * 2 * (first ? 1.15 : 0.8) + p * 2;
@@ -556,7 +558,7 @@
       b.strokeStyle = MR.rgbStr(rg.rgb, (first ? 0.9 : 0.35) + 0.5 * p);
       b.lineWidth = rg.t * 2 + (first ? 10 : 4) + p * 10;
       b.beginPath(); b.arc(c.x, c.y, rg.R, a0, a1); b.stroke();
-      if (first) {
+      if (first && !shut) {
         // bords du trou bien visibles
         for (let s2 = -1; s2 <= 1; s2 += 2) {
           const ea = rg.angle + s2 * rg.gap, ex = c.x + Math.cos(ea) * rg.R, ey = c.y + Math.sin(ea) * rg.R;
@@ -596,7 +598,9 @@
         m.spec = GL.spec(m.cfg, m.angle, m.spec);
         specs.push(m.spec);
       }
-      const tile = Math.ceil(2 * visible[0].r * cam.s * R.dpr) + 2;
+      // case 1,4× plus grande que la bille à l'écran (anticrénelage), réduite si l'atlas manque de place
+      let tile = Math.min(512, Math.ceil(2 * visible[0].r * cam.s * R.dpr * 1.4) + 2);
+      while (tile > 24 && Math.floor(GL.ATLAS_W / tile) * Math.floor(GL.MAIN_H / tile) < visible.length) tile = Math.floor(tile * 0.85);
       const slots = GL.render(specs, tile, time, 0);
       for (let i = 0; i < visible.length; i++) {
         const m = visible[i];

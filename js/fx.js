@@ -130,6 +130,15 @@
         c.strokeStyle = s; c.lineWidth = q.w || 4;
         c.beginPath(); c.moveTo(q.x - ex, q.y - ey); c.lineTo(q.x + ex, q.y + ey); c.stroke();
         if (b) { b.strokeStyle = s; b.lineWidth = (q.w || 4) * 3; b.beginPath(); b.moveTo(q.x - ex, q.y - ey); b.lineTo(q.x + ex, q.y + ey); b.stroke(); }
+      } else if (q.kind === 'note') {
+        c.save();
+        c.globalCompositeOperation = 'source-over';
+        c.font = '700 ' + Math.round(q.size) + 'px Outfit, system-ui, sans-serif';
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillStyle = MR.rgbStr(q.rgb, Math.min(1, k * 1.6));
+        c.fillText(q.glyph, q.x, q.y);
+        c.restore();
+        if (b) { b.fillStyle = MR.rgbStr(q.rgb, 0.5 * k); b.beginPath(); b.arc(q.x, q.y, q.size * 0.5, 0, TAU); b.fill(); }
       } else if (q.kind === 'dot') {
         const s = MR.rgbStr(q.rgb, k * 0.8);
         c.fillStyle = s;
@@ -142,7 +151,7 @@
   FX.System = System;
 
   /* ---------------- Traînées ---------------- */
-  const TRAIL_DUR = { ribbon: 0.42, comet: 0.26, rainbow: 0.55 };
+  const TRAIL_DUR = { ribbon: 0.42, comet: 0.26, rainbow: 0.55, piano: 0.6 };
   const WHITE = [255, 255, 255];
 
   function spawnTrail(sys, m, t) {
@@ -166,6 +175,11 @@
         sys.add({ kind: 'pixel', x: x, y: y, vx: MR.rand(-20, 20), vy: MR.rand(-20, 20), drag: 2, life: l, max: l,
           size: MR.pick([5, 6, 8]), rgb: MR.mixRgb(rgb, WHITE, Math.random() * 0.4) });
         break;
+      case 'piano':
+        l = MR.rand(0.9, 1.4);
+        sys.add({ kind: 'note', x: x, y: y - r, vx: MR.rand(-30, 30), vy: MR.rand(-90, -50), drag: 0.6, life: l, max: l,
+          size: r * MR.rand(1.1, 1.6), glyph: Math.random() < 0.5 ? '♪' : '♫', rgb: MR.mixRgb(rgb, WHITE, 0.5) });
+        break;
       case 'glitter':
         l = MR.rand(0.6, 1.1);
         sys.add({ kind: 'glitter', x: x, y: y, vx: MR.rand(-50, 50) - m.vx * 0.05, vy: MR.rand(-60, 20) - m.vy * 0.05,
@@ -176,19 +190,21 @@
 
   FX.trailTick = function (sys, m, dt, time) {
     const t = m.cfg.trail, dur = TRAIL_DUR[t], h = m.hist;
+    const sp = Math.sqrt(m.vx * m.vx + m.vy * m.vy);
     if (dur) {
+      // une bille au repos tremble d'un rien : pas de traînée tant qu'elle ne roule pas vraiment (sinon elle clignote)
       const last = h.length ? h[h.length - 1] : null;
-      if (!last || (m.x - last.x) * (m.x - last.x) + (m.y - last.y) * (m.y - last.y) > 4) h.push({ x: m.x, y: m.y, t: time });
+      if ((sp > 60 || m.id === 'card') && (!last || (m.x - last.x) * (m.x - last.x) + (m.y - last.y) * (m.y - last.y) > 4)) h.push({ x: m.x, y: m.y, t: time });
       while (h.length && time - h[0].t > dur) h.shift();
       if (h.length > 60) h.splice(0, h.length - 60);
     } else if (h.length) h.length = 0;
     if (dt <= 0) return;
-    const sp = Math.sqrt(m.vx * m.vx + m.vy * m.vy);
     let rate = 0;
     if (t === 'sparks') rate = sp > 70 ? Math.min(70, sp / 7) : 0;
-    else if (t === 'smoke') rate = sp > 40 ? 24 : 0;
-    else if (t === 'pixels') rate = sp > 40 ? 34 : 0;
-    else if (t === 'glitter') rate = sp > 30 ? 26 : 0;
+    else if (t === 'smoke') rate = sp > 70 ? 24 : 0;
+    else if (t === 'pixels') rate = sp > 70 ? 34 : 0;
+    else if (t === 'glitter') rate = sp > 70 ? 26 : 0;
+    else if (t === 'piano') rate = sp > 70 || m.id === 'card' ? 3.5 : 0;
     rate *= MR.fxDensity == null ? 1 : MR.fxDensity; // réglage « particules » du menu Paramètres
     if (!rate) return;
     m.emit = (m.emit || 0) + rate * dt;
@@ -200,6 +216,9 @@
   FX.drawTrail = function (c, b, m, time) {
     const t = m.cfg.trail, h = m.hist, n = h.length;
     if (!n || !TRAIL_DUR[t]) return;
+    // traînée trop courte pour se voir derrière la bille : rien à dessiner (évite un éclat sous la bille)
+    if ((m.x - h[0].x) * (m.x - h[0].x) + (m.y - h[0].y) * (m.y - h[0].y) < m.r * m.r) return;
+    if (t === 'piano') { drawPiano(c, b, m, time); return; }
     if (t === 'comet') {
       c.save();
       c.globalCompositeOperation = 'lighter';
@@ -228,6 +247,50 @@
       px = x; py = y;
     }
   };
+
+  // traînée « piano » : un clavier qui se déroule derrière la bille
+  function drawPiano(c, b, m, time) {
+    const h = m.hist, KEY = Math.max(6, m.r * 0.62), L = m.r * 1.9;
+    const pts = h.concat([{ x: m.x, y: m.y, t: time }]);
+    const n = pts.length, keys = [];
+    let next = KEY * 0.5;
+    for (let i = 1; i < n; i++) {
+      const ax = pts[i - 1].x, ay = pts[i - 1].y, dx = pts[i].x - ax, dy = pts[i].y - ay, len = Math.hypot(dx, dy);
+      if (len < 0.01) continue;
+      const ux = dx / len, uy = dy / len;
+      let pos = 0;
+      while (pos + next <= len) {
+        pos += next;
+        keys.push({ x: ax + ux * pos, y: ay + uy * pos, ux: ux, uy: uy, k: i / n });
+        next = KEY;
+      }
+      next -= len - pos;
+    }
+    const quad = function (cc, x, y, ux, uy, hl, ht) {
+      const nx = -uy, ny = ux;
+      cc.beginPath();
+      cc.moveTo(x + nx * hl + ux * ht, y + ny * hl + uy * ht);
+      cc.lineTo(x - nx * hl + ux * ht, y - ny * hl + uy * ht);
+      cc.lineTo(x - nx * hl - ux * ht, y - ny * hl - uy * ht);
+      cc.lineTo(x + nx * hl - ux * ht, y + ny * hl - uy * ht);
+      cc.closePath();
+    };
+    // les touches les plus récentes (près de la bille) sont dessinées en dernier
+    for (let j = 0; j < keys.length; j++) {
+      const q = keys[j], a = Math.min(1, q.k * 1.15);
+      quad(c, q.x, q.y, q.ux, q.uy, L / 2, KEY / 2 - 0.8);
+      c.fillStyle = 'rgba(250,248,240,' + (0.85 * a).toFixed(3) + ')'; c.fill();
+      c.strokeStyle = 'rgba(30,20,40,' + (0.6 * a).toFixed(3) + ')'; c.lineWidth = 1; c.stroke();
+      if (b) { quad(b, q.x, q.y, q.ux, q.uy, L / 2, KEY / 2); b.fillStyle = MR.rgbStr(m.rgb, 0.28 * a); b.fill(); }
+      // touches noires entre deux blanches (motif 2 + 3 d'un vrai clavier)
+      const idx = (j + Math.floor((m.seedN || 0) / 7)) % 7;
+      if (idx !== 2 && idx !== 6 && j < keys.length - 1) {
+        const nx = -q.uy, ny = q.ux;
+        quad(c, q.x + q.ux * KEY / 2 + nx * L * 0.2, q.y + q.uy * KEY / 2 + ny * L * 0.2, q.ux, q.uy, L * 0.3, KEY * 0.3);
+        c.fillStyle = 'rgba(16,10,24,' + (0.95 * a).toFixed(3) + ')'; c.fill();
+      }
+    }
+  }
 
   /* ---------------- Contours ---------------- */
   function ring(c, x, y, r, w, style) {
@@ -304,7 +367,7 @@
         if (b) ring(b, x, y, r + 4, 4, MR.rgbStr(rgb, 0.45));
         break;
       case 'electric': {
-        const seed = Math.floor(time * 18) + (m.seedN || 0);
+        const seed = Math.floor(time * 11) + (m.seedN || 0);
         const pts = 26;
         const path = function (cc) {
           cc.beginPath();

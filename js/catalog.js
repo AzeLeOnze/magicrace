@@ -31,12 +31,28 @@
     { id: 'bulle',      rarity: 'uncommon',  name: 'Bulle',            accent: '#c9f2ff', blurb: 'Savon et reflets irisés' },
     { id: 'camo',       rarity: 'uncommon',  name: 'Camo',             accent: '#8b9358', blurb: 'Camouflage kaki' },
     { id: 'granit',     rarity: 'uncommon',  name: 'Granit',           accent: '#b5b0aa', blurb: 'Pierre polie mouchetée' },
+    { id: 'epice',      rarity: 'uncommon',  name: 'Épice',            accent: '#d9652b', blurb: 'Paprika, cannelle et poivre' },
+    { id: 'magique',    rarity: 'uncommon',  name: 'Magique',          accent: '#a85cff', blurb: 'Poussière d’étoiles qui scintille' },
+    { id: 'neige',      rarity: 'uncommon',  name: 'Neige',            accent: '#eaf6ff', blurb: 'Boule de neige, flocons qui brillent' },
+    { id: 'roche',      rarity: 'uncommon',  name: 'Roche',            accent: '#8d8a86', blurb: 'Caillou brut, fissures et mousse' },
+    { id: 'menthe',     rarity: 'uncommon',  name: 'Menthe',           accent: '#5fe3b0', blurb: 'Bonbon à la menthe tourbillon' },
+    { id: 'sable',      rarity: 'uncommon',  name: 'Sable',            accent: '#e8c98f', blurb: 'Dunes de la plage disco' },
+    { id: 'lavande',    rarity: 'uncommon',  name: 'Lavande',          accent: '#b49cff', blurb: 'Champ de lavande en fleurs' },
     // rares
     { id: 'chrome',     rarity: 'rare',      name: 'Chrome',           accent: '#dfe6f2', blurb: 'Miroir poli, néons dans le reflet' },
     { id: 'damier',     rarity: 'rare',      name: 'Damier',           accent: '#f2f2f2', blurb: 'Le drapeau de l’arrivée' },
     { id: 'sucre',      rarity: 'rare',      name: 'Sucre d’orge',     accent: '#ff3b5c', blurb: 'Spirale rouge et blanche' },
     { id: 'glace',      rarity: 'rare',      name: 'Glace',            accent: '#9fe8ff', blurb: 'Glaçon fêlé, givré au bord' },
     { id: 'vinyle',     rarity: 'rare',      name: 'Vinyle',           accent: '#ff4fa0', blurb: 'Un 45 tours qui tourne' },
+    { id: 'boise',      rarity: 'rare',      name: 'Boisé',            accent: '#b5763a', blurb: 'Bois verni, cernes et nœuds' },
+    { id: 'fraise',     rarity: 'rare',      name: 'Fraise',           accent: '#ff3b4f', blurb: 'Bien mûre, avec ses akènes' },
+    { id: 'verre',      rarity: 'rare',      name: 'Verre',            accent: '#bff3ff', blurb: 'Verre soufflé, bulles et reflets' },
+    { id: 'ecailles',   rarity: 'rare',      name: 'Écailles',         accent: '#2fd6a0', blurb: 'Écailles de dragon irisées' },
+    { id: 'marbre',     rarity: 'rare',      name: 'Marbre',           accent: '#f2eee6', blurb: 'Marbre blanc veiné d’or' },
+    { id: 'ambre',      rarity: 'rare',      name: 'Ambre',            accent: '#ffa526', blurb: 'Résine fossile, lumière de miel' },
+    { id: 'coquillage', rarity: 'rare',      name: 'Coquillage',       accent: '#ffc2b0', blurb: 'Spirale nacrée de la plage' },
+    { id: 'tiedye',     rarity: 'rare',      name: 'Tie-dye',          accent: '#ff6ad5', blurb: 'Tourbillon de teinture hippie' },
+    { id: 'cuivre',     rarity: 'rare',      name: 'Cuivre',           accent: '#d9824a', blurb: 'Cuivre poli, patine vert-de-gris' },
     // épiques
     { id: 'lavalamp',   rarity: 'epic',      name: 'Lampe à lave',     accent: '#ff7a3d', blurb: 'La cire qui monte, années 70' },
     { id: 'aurore',     rarity: 'epic',      name: 'Aurore boréale',   accent: '#3dffb0', blurb: 'Rideaux de lumière sur la neige' },
@@ -89,6 +105,7 @@
     { id: 'smoke', name: 'Fumée', rarity: 'uncommon', blurb: 'Traînée · volutes de fumée' },
     { id: 'sparks', name: 'Étincelles', rarity: 'rare', blurb: 'Traînée · gerbe d’étincelles' },
     { id: 'pixels', name: 'Pixels', rarity: 'rare', blurb: 'Traînée · pixels rétro' },
+    { id: 'piano', name: 'Piano', rarity: 'rare', blurb: 'Traînée · touches de piano et notes' },
     { id: 'rainbow', name: 'Arc-en-ciel', rarity: 'epic', blurb: 'Traînée · arc-en-ciel' },
     { id: 'glitter', name: 'Paillettes', rarity: 'epic', blurb: 'Traînée · pluie de paillettes' }
   ];
@@ -199,16 +216,23 @@
     };
   };
 
+  // bille neutre : une couleur au hasard, sans motif ni effet (0.2.0)
+  MR.plainLook = function () {
+    const cols = MR.availableColors().filter(function (c) { return c !== '#3a3550' && c !== '#f3f0fa'; });
+    const color = MR.pick(cols);
+    return { skin: 'solid', color: color, trail: 'none', sound: 'none', outline: 'none', outlineColor: '#ffffff', seed: Math.random() };
+  };
+
   MR.randomMarble = function (taken) {
-    const look = MR.randomLook();
+    const look = MR.plainLook();
     look.id = MR.uid();
     look.name = MR.uniqueName(taken);
     return look;
   };
 
-  // bille prête à courir à partir d'une carte de la collection
+  // bille prête à courir à partir d'une carte de la collection (neutre, sauf ce que donne la carte)
   MR.marbleFromCard = function (card, taken) {
-    const look = MR.randomLook();
+    const look = MR.plainLook();
     if (card.kind === 'color' || card.kind === 'skin') { look.skin = card.skin; look.color = card.color; }
     else look[FX_KIND[card.kind].field] = card.effect;
     look.id = MR.uid();

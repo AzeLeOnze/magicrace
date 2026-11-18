@@ -249,7 +249,20 @@
     if (big) questAdd('race30', 1);
     if (big && r >= 1 && r <= 5) questAdd('top5', 1);
     P.check();
+    // XP de la course : 50 avec moins de 30 billes ; sinon 80, top 10 = 120, 3e = 200, 2e = 300, 1re = 500
+    const xp = P.raceXP(info.count, r);
+    P.addXP(xp, 'Course');
+    return xp;
   };
+  P.raceXP = function (count, rank) {
+    if (count < 30) return 50;
+    if (rank === 1) return 500;
+    if (rank === 2) return 300;
+    if (rank === 3) return 200;
+    if (rank >= 1 && rank <= 10) return 120;
+    return 80;
+  };
+  P.PACK_XP = { normal: 50, premium: 100, ultra: 200 };
   // ouverture d'un paquet (cards.js) : les gains sont contrôlés à la fin de la révélation (pour ne rien dévoiler)
   P.onPackOpened = function (type) {
     const s = st.stats;
@@ -258,6 +271,7 @@
     if (type === 'ultra') s.ultra++;
     questAdd('packs3', 1);
     save(true);
+    P.addXP(P.PACK_XP[type] || 50, 'Paquet');
   };
   P.onSecret = function () { st.stats.hidden++; save(true); };
   P.onRename = function () {

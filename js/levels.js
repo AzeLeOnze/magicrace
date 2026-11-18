@@ -212,8 +212,9 @@
       L.seg(0, 1560, 940, 1560 + 940 * k, { kind: 'disco', e: 0.25 });
       L.seg(1600, 1700, 840, 2090, { kind: 'disco', e: 0.25 });
 
-      // entonnoir final
+      // entonnoir final (faire la queue avant l'arrivée n'est pas être coincé)
       const my = 2400;
+      L.calm.push({ x0: 0, y0: 2080, x1: 1600, y1: my + 20 });
       L.seg(0, 2100, 700, my, { kind: 'funnel', e: 0.25 });
       L.seg(1600, 2140, 900, my, { kind: 'funnel', e: 0.25 });
       // bassin d'arrivée
@@ -348,6 +349,7 @@
       L.bumper(1110, 2395, 24, 230, true);
       L.bumper(950, 2445, 18, 180, true);
       const my = 2540;
+      L.calm.push({ x0: 440, y0: 2420, x1: 1460, y1: my + 20 });
       L.seg(440, 2135, 440, 2350, { kind: 'wall', t: 10, e: 0.3 });
       L.seg(1460, yj(1460) + 12, 1460, 2350, { kind: 'wall', t: 10, e: 0.3 });
       L.seg(440, 2350, 860, my, { kind: 'funnel', t: 12, e: 0.25 });
@@ -507,6 +509,7 @@
       L.sign('FEU D’ARTIFICE', 1060, 5480, 24, '#ff9f2e');
 
       const my = 6550;
+      L.calm.push({ x0: 0, y0: 6240, x1: 1600, y1: my + 20 });
       L.seg(0, 6250, 700, my, { kind: 'funnel', e: 0.25 });
       L.seg(1600, 6290, 900, my, { kind: 'funnel', e: 0.25 });
       L.bumper(520, 6400, 24, 220, true);
@@ -546,7 +549,13 @@
       const W = half * 2, H = half * 2, cx = half, cy = half;
       const L = Builder(W, H);
       const T = MR.L4 || {};   // réglages de test
-      L.gravity = T.g || 600;
+      // pas de gravité : les billes rebondissent sur les cercles sans perdre de vitesse
+      L.gravity = 0;
+      L.elastic = true;
+      L.lockUntilStart = true;
+      L.speed = T.speed || 520;
+      L.speedPerR = T.perR || 1.3;
+      L.openDelay = T.open || 0.35;
       L.marbleR = r;
       L.theme = 'beach';
       L.mode = 'survival';
@@ -573,7 +582,7 @@
         // vitesse de bord à peu près constante : le trou défile aussi vite sur les petits que sur les grands cercles
         const v = (T.v || 240) * (0.75 + Math.random() * 0.5);
         L.rings.push({ cx: cx, cy: cy, R: R, t: 5, gap: Math.max((r * 2.1 + 4) / R, T.gapA || 0.19), angle: Math.random() * MR.TAU,
-          omega: (Math.random() < 0.5 ? -1 : 1) * MR.clamp(v / R, T.wmin || 0.5, 2.2), e: T.e || 0.9, hue: hue, rgb: hsl(hue, 0.95, 0.6) });
+          omega: (Math.random() < 0.5 ? -1 : 1) * MR.clamp(v / R, T.wmin || 0.5, 2.2), e: 1, hue: hue, rgb: hsl(hue, 0.95, 0.6) });
       }
       // départ au milieu : grille hexagonale serrée dans le plus petit cercle
       L.spawnSlots = function (k) {

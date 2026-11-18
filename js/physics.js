@@ -36,6 +36,10 @@
       // cercles tournants à trou (niveau 4) : seul le plus petit encore entier est solide
       rings: (def.rings || []).map(function (r) { return Object.assign({ flash: 0, alive: true, pulse: 0, gap0: r.gap, omega0: r.omega }, r); }),
       ringIdx: 0,
+      // niveau 4 : rebonds parfaits (aucune perte), cercles figés et fermés avant le départ, vitesse constante en course
+      elastic: !!def.elastic,
+      locked: !!def.lockUntilStart,
+      constSpeed: 0,
       marbles: [],
       events: [],
       t: 0
@@ -67,7 +71,7 @@
     const vn = rvx * nx + rvy * ny;
     if (vn < 0) {
       const imp = -vn;
-      const ee = imp > 50 ? e : 0;
+      const ee = imp > 50 || w.elastic ? e : 0;
       m.vx -= (1 + ee) * vn * nx;
       m.vy -= (1 + ee) * vn * ny;
       if (imp > 60) {
@@ -81,7 +85,8 @@
     m.vx -= vt * gr * tx;
     m.vy -= vt * gr * ty;
     m.touch = true;
-    m.spinT = vt / m.r;
+    // rotation suivie seulement quand la bille roule vraiment (au repos, elle ne doit pas osciller)
+    m.spinT = Math.abs(vt) < 18 ? 0 : vt / m.r;
     return vn;
   }
 
@@ -122,8 +127,10 @@
     const d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
     if (Math.abs(d - rg.R) >= m.r + rg.t + 2) return;
     const rel = wrapA(Math.atan2(dy, dx) - rg.angle);
+    // trou fermé : avant le départ, et un court instant après qu'un cercle plus petit s'est brisé
+    const shut = w.locked || w.t < (rg.openAt || 0);
     let px, py;
-    if (Math.abs(rel) > rg.gap) { px = rg.cx + dx / d * rg.R; py = rg.cy + dy / d * rg.R; }
+    if (shut || Math.abs(rel) > rg.gap) { px = rg.cx + dx / d * rg.R; py = rg.cy + dy / d * rg.R; }
     else {
       const ea = rg.angle + (rel > 0 ? rg.gap : -rg.gap);
       px = rg.cx + Math.cos(ea) * rg.R; py = rg.cy + Math.sin(ea) * rg.R;
@@ -195,7 +202,7 @@
       const c = w.circles[k];
       if (c.spin) { c.omega = c.spin * Math.sin(w.t * c.freq + (c.ph || 0)); c.angle = (c.angle || 0) + c.omega * dt; }
     }
-    for (k = w.ringIdx; k < w.rings.length; k++) w.rings[k].angle += w.rings[k].omega * dt;
+    if (!w.locked) for (k = w.ringIdx; k < w.rings.length; k++) w.rings[k].angle += w.rings[k].omega * dt;
     const ring = w.rings[w.ringIdx] || null;
 
     // intégration (une bille tenue au curseur suit sa cible, sans gravité)
@@ -204,7 +211,7 @@
       if (m.held) {
         m.vx = (m.hx - m.x) * 22; m.vy = (m.hy - m.y) * 22;
       } else m.vy += g * dt;
-      m.vx *= 1 - AIR; m.vy *= 1 - AIR;
+      if (!w.elastic) { m.vx *= 1 - AIR; m.vy *= 1 - AIR; }
       const sp2 = m.vx * m.vx + m.vy * m.vy;
       if (sp2 > VMAX * VMAX) { const f = VMAX / Math.sqrt(sp2); m.vx *= f; m.vy *= f; }
       m.x += m.vx * dt;
@@ -229,7 +236,7 @@
           b.x += nx * pen; b.y += ny * pen;
           const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
           if (rv < 0) {
-            const e = rv < -50 ? 0.6 : 0.05;
+            const e = w.elastic ? 1 : rv < -50 ? 0.6 : 0.05;
             const jj = -(1 + e) * rv * 0.5;
             a.vx -= jj * nx; a.vy -= jj * ny;
             b.vx += jj * nx; b.vy += jj * ny;
@@ -300,6 +307,12 @@
           m.vx += z.ax * dt; m.vy += z.ay * dt;
           z.hot = 1;
         }
+      }
+      // vitesse constante (niveau 4 en course) : chaque bille garde la même vitesse, seule sa direction change
+      if (w.constSpeed && !m.held) {
+        const sp = Math.sqrt(m.vx * m.vx + m.vy * m.vy);
+        if (sp > 1) { m.vx *= w.constSpeed / sp; m.vy *= w.constSpeed / sp; }
+        else { const a = Math.random() * MR.TAU; m.vx = Math.cos(a) * w.constSpeed; m.vy = Math.sin(a) * w.constSpeed; }
       }
       if (m.touch) m.spin += (m.spinT - m.spin) * 0.3;
       else m.spin *= 0.9995;

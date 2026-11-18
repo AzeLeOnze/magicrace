@@ -126,6 +126,7 @@
 
   /* ---------------- niveau & course ---------------- */
   G.loadLevel = function (id) {
+    if (G.run && !runLoading) G.stopRun();
     G.levelDef = MR.levelById(id);
     G.settings.levelId = G.levelDef.id;
     saveSettings();
@@ -142,7 +143,7 @@
     G.marbles = G.roster.map(function (cfg, i) { return makeBody(cfg, slots[i] || slots[0], L.marbleR); });
     // la physique a sa propre liste : une bille éliminée en sort, mais reste au classement
     G.world.marbles = G.marbles.slice();
-    G.beatN = -1; G.lastEscape = 0; G.counted = false;
+    G.beatN = -1; G.lastEscape = 0; G.counted = false; G.raceXP = 0;
     G.state = 'ready';
     G.paused = false;
     G.moved = false;
@@ -164,6 +165,11 @@
   G.start = function () {
     MR.Audio.unlock();
     if (G.state === 'countdown') return;
+    // en run, « relancer » après l'arrivée passe au niveau suivant (ou recommence une run terminée)
+    if (G.run && G.state === 'finished') {
+      if (G.run.done) G.startRun(); else G.runNext();
+      return;
+    }
     if (G.drag) { G.drag.m.held = false; G.drag = null; }
     // une bille déplacée à la main repart de l'enclos : départ équitable
     if (G.state !== 'ready' || G.moved) G.reset(false, false);
@@ -178,6 +184,13 @@
     G.raceTime = 0;
     G.world.arms.forEach(function (a) { if (a.kind === 'door') a.omega = a.openSpeed; });
     G.marbles.forEach(function (m) { m.ax = m.x; m.ay = m.y; m.at = 0; });
+    // niveau 4 : les cercles se débloquent et toutes les billes partent dans une direction au hasard
+    if (G.level.mode === 'survival') {
+      const W = G.world, v = G.level.speed || 520;
+      W.locked = false;
+      W.constSpeed = v;
+      G.marbles.forEach(function (m) { const a = Math.random() * MR.TAU; m.vx = Math.cos(a) * v; m.vy = Math.sin(a) * v; });
+    }
     MR.UI.countdown('GO');
     MR.Audio.countBeep(true);
     MR.UI.onState();
@@ -245,9 +258,64 @@
     G.state = 'finished';
     G.resultsIn = 1.6;
     G.followId = null;
-    MR.UI.onState();
     recordRace();
+    recordRun();
+    MR.UI.onState();
   }
+
+  /* ---------------- mode run : tous les niveaux à la suite, classement cumulé ---------------- */
+  // Chaque course rapporte des points à chaque bille : (nombre de billes − place + 1). Le total décide du classement de la run.
+  G.run = null;
+  let runLoading = false;
+  G.startRun = function () {
+    MR.Audio.unlock();
+    G.run = { levels: MR.LEVELS.map(function (l) { return l.id; }), idx: 0, races: [], totals: {}, done: false };
+    runLoad(0);
+    MR.UI.toast('Mode run : ' + G.run.levels.length + ' niveaux à la suite, les points s’additionnent');
+  };
+  function runLoad(i) {
+    G.run.idx = i;
+    runLoading = true;
+    G.loadLevel(G.run.levels[i]);
+    runLoading = false;
+    MR.UI.syncControls();
+    G.start();
+  }
+  G.runNext = function () {
+    // seulement une fois la course en cours terminée et comptée
+    if (!G.run || G.run.done || G.run.races.length <= G.run.idx) return;
+    MR.UI.hideResults();
+    runLoad(G.run.idx + 1);
+  };
+  G.stopRun = function (silent) {
+    if (!G.run) return;
+    G.run = null;
+    MR.UI.onState();
+    if (!silent) MR.UI.toast('Run arrêtée');
+  };
+  G.runLoading = function () { return runLoading; };
+  function recordRun() {
+    const R = G.run;
+    if (!R || G.simulating || R.races.length > R.idx) return;
+    computeRanking();
+    const n = G.ranking.length;
+    const res = G.ranking.map(function (m, i) {
+      return { id: m.id, name: m.cfg.name, color: m.cfg.color, me: !!m.cfg.me, pos: i + 1, pts: n - i };
+    });
+    R.races.push({ levelId: G.levelDef.id, num: G.levelDef.num, name: G.levelDef.name, res: res });
+    res.forEach(function (r) {
+      const t = R.totals[r.id] || (R.totals[r.id] = { id: r.id, pts: 0, sum: 0, best: 999, per: [] });
+      t.name = r.name; t.color = r.color; t.me = r.me;
+      t.pts += r.pts; t.sum += r.pos; t.best = Math.min(t.best, r.pos);
+      t.per[R.races.length - 1] = r.pts;
+    });
+    if (R.idx >= R.levels.length - 1) R.done = true;
+  }
+  G.runStandings = function () {
+    if (!G.run) return [];
+    return Object.keys(G.run.totals).map(function (k) { return G.run.totals[k]; })
+      .sort(function (a, b) { return b.pts - a.pts || a.sum - b.sum || a.best - b.best; });
+  };
   // statistiques, quêtes et succès (pas pendant les simulations de test)
   function recordRace() {
     if (G.simulating || G.counted) return;
@@ -255,7 +323,7 @@
     computeRanking();
     const me = G.marbles.find(function (m) { return m.cfg.me; });
     const win = G.ranking[0] && G.ranking[0].finished && !G.ranking[0].dnf ? G.ranking[0] : null;
-    MR.Prog.onRaceEnd({
+    G.raceXP = MR.Prog.onRaceEnd({
       levelId: G.levelDef.id, mode: G.level.mode || 'race', count: G.marbles.length,
       rank: me && !me.dnf ? me.rank : 0, time: me && !me.dnf ? me.time : 0, out: !!(me && me.out && me.dnf),
       myName: me ? me.cfg.name : '', winnerName: win ? win.cfg.name : '', raceTime: G.raceTime, explosions: G.explosions || 0
@@ -301,6 +369,8 @@
           rg.alive = false;
           W.ringIdx++;
           G.lastEscape = G.raceTime;
+          // le trou du cercle suivant s'ouvre un instant plus tard (on voit chaque cercle se briser)
+          if (W.rings[W.ringIdx]) W.rings[W.ringIdx].openAt = W.t + (L.openDelay || 0.35);
           if (!G.simulating) {
             MR.FX.shatterRing(G.fx, rg.cx, rg.cy, rg.R, rg.rgb, rg.angle);
             MR.Audio.ringBreak(0);
@@ -319,26 +389,14 @@
     if (!rg) return;
     // personne ne sort depuis 4 s : le trou s'élargit peu à peu (jusqu'à 2,2 fois)
     if (G.raceTime - G.lastEscape > 4) rg.gap = Math.min(rg.gap0 * 2.2, rg.gap + rg.gap0 * 0.15 * dt);
-    // le cercle actif file quand son trou est en haut (loin des billes), puis ralentit en arrivant en bas
-    let off = (rg.angle - Math.PI / 2) % MR.TAU;
-    if (off > Math.PI) off -= MR.TAU; else if (off < -Math.PI) off += MR.TAU;
-    rg.omega = rg.omega0 * (Math.abs(off) > Math.PI * 0.45 ? L.hunt || 2.6 : 1);
-    // sur chaque temps de la musique, le cercle pulse ; tous les `beatEvery` temps, les billes reçoivent une poussée
-    // (plus forte si personne ne s'échappe depuis un moment)
+    // la vitesse des billes suit la taille du cercle actif (les grands cercles ne traînent pas)
+    W.constSpeed = Math.max(L.speed || 520, rg.R * (L.speedPerR || 1.3));
+    // chaque temps de la musique fait pulser les cercles
     const beat = G.simulating || !MR.Audio.ready() ? G.raceTime * 116 / 60 : MR.Audio.beat();
     const bn = Math.floor(beat);
     if (bn !== G.beatN) {
-      const first = G.beatN < 0;
       G.beatN = bn;
-      if (first) return;
       for (let k = W.ringIdx; k < W.rings.length; k++) W.rings[k].pulse = 1;
-      if (bn % (L.beatEvery || 1)) return;
-      const K = (L.beatKick || 200) * Math.min(3, 1 + Math.max(0, G.raceTime - G.lastEscape - 4) * 0.2);
-      for (let i = 0; i < left.length; i++) {
-        const m = left[i], a = Math.random() * MR.TAU;
-        m.vx += Math.cos(a) * K;
-        m.vy += Math.sin(a) * K - K * 0.25;
-      }
     }
   }
 
@@ -542,6 +600,7 @@
 
   /* ---------------- API pour le panneau ---------------- */
   function rosterChanged(countChanged) {
+    if (countChanged && G.run) G.stopRun();
     saveRoster();
     if (countChanged) G.reset(G.state !== 'ready', false);
     MR.UI.renderList();
