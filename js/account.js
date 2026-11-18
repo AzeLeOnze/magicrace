@@ -88,7 +88,8 @@
   A.create = async function (pseudo) {
     const p = A.tidy(pseudo);
     if (!A.valid(p)) return { ok: false, msg: 'Pseudo de 3 à 16 caractères : lettres, chiffres, espace, point, tiret.' };
-    if (A.status === 'offline' || A.status === 'checking') return { ok: false, msg: 'Les comptes marchent dans la version claude.ai de MagicRace.' };
+    if (A.status === 'checking') return { ok: false, msg: 'Connexion en cours, réessaie dans quelques secondes.' };
+    if (A.status === 'offline') return { ok: false, msg: 'Pas de compte possible sur cette page : elle n’a pas de serveur pour garder les comptes. Ouvre MagicRace sur claude.ai pour créer ton compte.' };
     if (A.status === 'readonly') return { ok: false, msg: 'Tu peux voir ce MagicRace mais pas y écrire : demande au propriétaire l’accès « Contributeur ».' };
     if (await taken(p)) return { ok: false, msg: '« ' + p + ' » est déjà pris, choisis un autre pseudo.' };
     const before = acc;

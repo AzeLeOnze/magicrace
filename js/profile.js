@@ -260,7 +260,7 @@
     let h = '';
     if (!acc) {
       h += '<section class="pr-sec"><h3>Créer ton compte</h3><p>Le compte n’est pas obligatoire, mais il faut en avoir un pour voir le classement des joueurs (trié par XP).</p>';
-      if (st === 'offline') h += '<p class="pr-warn">Le classement en ligne marche dans la version claude.ai de MagicRace. Sur cette page, ta progression reste sur cet appareil.</p>';
+      if (st === 'offline') h += '<p class="pr-warn">Ici (site ou fichier), il n’y a pas de serveur pour garder les comptes : le compte et le classement ne marchent que quand MagicRace est ouvert sur claude.ai. Ta progression, elle, reste bien enregistrée sur cet appareil.</p>';
       else if (st === 'checking') h += '<p class="hint">Connexion en cours…</p>';
       h += accountForm('Créer mon compte', '');
       h += '</section>';
