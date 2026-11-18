@@ -1,10 +1,13 @@
-/* MagicRace — sauvegarde dans le compte claude.ai (cartes + billes), quand la page tourne dans claude.ai.
- * Le stockage du navigateur reste la sauvegarde locale ; ce module n'ajoute que la copie privée du joueur. */
+/* MagicRace — sauvegarde dans le compte claude.ai (cartes, billes, progression), quand la page tourne dans claude.ai.
+ * Le stockage du navigateur reste la sauvegarde locale ; ce module n'ajoute que la copie privée du joueur.
+ * 0.2.0 : expose aussi la base partagée et l'identifiant du joueur pour les comptes et le classement (account.js). */
 (function (MR) {
   'use strict';
 
-  const S = { connected: false };
+  const S = { connected: false, db: null, uid: null, user: null };
   let ref = null, timer = null, writing = false, again = false, retried = false;
+  let readyResolve = null;
+  S.ready = new Promise(function (res) { readyResolve = res; });
 
   function canon(v) {
     if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
@@ -25,6 +28,7 @@
       if (!id) return;
       const db = await c.use('db');
       if (!db) return;
+      S.db = db; S.uid = id; S.user = user;
       const r = db.doc('data/users/' + id + '/save');
       const snap = await timeout(r.get(), 10000);
       if (!snap) return; // stockage injoignable : on reste en local pour cette visite
@@ -39,6 +43,8 @@
     } catch (e) {
       ref = null;
       S.connected = false;
+    } finally {
+      readyResolve(S);
     }
   };
 

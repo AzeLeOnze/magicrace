@@ -435,11 +435,24 @@
     fx.rays.target = 0;
   }
 
+  const PACK_LOOK = {
+    normal: { title: 'Paquet de billes', sub: '5 cartes' },
+    premium: { title: 'Paquet premium', sub: '5 cartes · rare ou mieux' },
+    ultra: { title: 'Paquet ultra', sub: '5 cartes · épique ou légendaire' }
+  };
+  function setLook(t) {
+    packBtn.classList.toggle('premium', t === 'premium');
+    packBtn.classList.toggle('ultra', t === 'ultra');
+    $('#packTitle').textContent = PACK_LOOK[t].title;
+    $('#packSub').textContent = PACK_LOOK[t].sub;
+  }
+  P.isBusy = function () { return busy || phase === 'opening' || phase === 'dealing' || (phase === 'reveal' && isOpen); };
+
   async function startOpen(demo) {
     if (busy) return;
-    const prem = !demo && curType() === 'premium';
-    packBtn.classList.toggle('premium', prem);
-    const got = demo ? MR.Cards.demo() : MR.Cards.open(prem);
+    const want = demo ? 'normal' : curType();
+    setLook(want);
+    const got = demo ? MR.Cards.demo() : MR.Cards.open(want);
     if (!got) { MR.UI.toast('Pas de paquet pour le moment : le prochain arrive bientôt'); return; }
     MR.Audio.unlock();
     busy = true; auto = false;
@@ -465,6 +478,9 @@
       kf.push({ transform: 'translate(' + MR.rand(-a, a).toFixed(1) + 'px,' + MR.rand(-a, a).toFixed(1) + 'px) rotate(' + MR.rand(-a, a).toFixed(1) * 0.4 + 'deg)' });
     }
     await anim(packBtn, kf, { duration: 1000, easing: 'linear' });
+
+    // 1 bis) paquet caché : le paquet normal se dérègle puis se transforme en premium ou en ultra
+    if (got.secret) await secretReveal(got.type, pc);
 
     // 2) déchirure
     MR.Audio.packRip();
@@ -497,6 +513,37 @@
     setPhase('reveal');
     busy = false;
     if (cards[0]) cards[0].el.focus({ preventScroll: true });
+  }
+
+  async function secretReveal(type, pc) {
+    const U = type === 'ultra', rgb = U ? [140, 255, 245] : [255, 207, 74];
+    const red = reduced();
+    MR.Audio.duck(true);
+    MR.Audio.riser(1.1, true);
+    fx.rays.x = pc.x; fx.rays.y = pc.y; fx.rays.rgb = rgb; fx.rays.scale = 1.3; fx.rays.target = U ? 1 : 0.8;
+    packBtn.classList.add('glitch');
+    const kf = [];
+    for (let i = 0; i <= 30; i++) {
+      const a = red ? 0 : 4 + 12 * (i / 30);
+      kf.push({ transform: 'translate(' + MR.rand(-a, a).toFixed(1) + 'px,' + MR.rand(-a, a).toFixed(1) + 'px) rotate(' + (MR.rand(-a, a) * 0.5).toFixed(1) + 'deg)', filter: 'hue-rotate(' + Math.round(MR.rand(0, 360)) + 'deg) saturate(' + (1 + i / 15).toFixed(2) + ')' });
+    }
+    implode(pc.x, pc.y, rgb, 1100, 140, 1);
+    boltsOn({ x: pc.r.left, y: pc.r.top, w: pc.r.width, h: pc.r.height }, rgb, 1100, true);
+    await anim(packBtn, kf, { duration: 1100, easing: 'linear' });
+    packBtn.classList.remove('glitch');
+    setLook(type);
+    flash(0.9, [255, 255, 255], 700);
+    ring(pc.x, pc.y, rgb, 1400, 9, 1.1);
+    ring(pc.x, pc.y, [255, 255, 255], 900, 4, 0.8);
+    sparks(pc.x, pc.y, rgb, 160, 1.3);
+    glitter(pc.x, pc.y, 90, U ? 150 : 35, U ? 330 : 58, 1.3);
+    shake(stage, 14, 500);
+    MR.Audio.reveal(U ? 'legendary' : 'epic');
+    showTitle(U ? 'ULTRA CACHÉ !' : 'PREMIUM CACHÉ !', rgb, U);
+    spotTitle.classList.add('t-small');
+    await wait(red ? 500 : 1700);
+    spotTitle.className = 'spot-title';
+    MR.Audio.duck(false);
   }
 
   function buildDeal() {
@@ -715,7 +762,9 @@
 
   function finishReveal() {
     setPhase('done');
-    const n = MR.Cards.packs() + MR.Cards.premium();
+    const n = MR.Cards.total();
+    // quêtes et succès (collection, paquets ouverts) : contrôlés une fois les cartes dévoilées
+    setTimeout(function () { if (MR.Prog) MR.Prog.check(); }, 400);
     const next = $('#bNext');
     next.hidden = n <= 0;
     next.textContent = 'Ouvrir le suivant (' + n + ')';
@@ -850,62 +899,66 @@
     document.body.classList.remove('cards-open');
     fx.parts.length = 0; fx.rings.length = 0; fx.rays.a = fx.rays.target = 0;
     if (phase !== 'reveal') { resetPack(); setPhase('idle'); }
+    if (MR.Prog) MR.Prog.check();
     const btn = $('#cToggle');
     if (btn) btn.focus();
   };
   P.isOpen = function () { return isOpen; };
 
-  // type de paquet sélectionné (normal ou premium), en retombant sur celui qui est disponible
+  // type de paquet sélectionné (normal, premium ou ultra), en retombant sur celui qui est disponible
   function curType() {
-    const n = MR.Cards.packs(), p = MR.Cards.premium();
-    if (packType === 'premium' && p > 0) return 'premium';
-    if (packType === 'normal' && n > 0) return 'normal';
-    return p > 0 && n <= 0 ? 'premium' : 'normal';
+    const c = { normal: MR.Cards.packs(), premium: MR.Cards.premium(), ultra: MR.Cards.ultra() };
+    if (c[packType] > 0) return packType;
+    if (c.normal > 0) return 'normal';
+    if (c.premium > 0) return 'premium';
+    if (c.ultra > 0) return 'ultra';
+    return 'normal';
   }
 
   P.updateCounters = function () {
-    const n = MR.Cards.packs(), p = MR.Cards.premium(), ms = MR.Cards.msToNext();
+    const n = MR.Cards.packs(), p = MR.Cards.premium(), u = MR.Cards.ultra(), ms = MR.Cards.msToNext();
     const mm = Math.floor(ms / 60000), ss = Math.floor(ms / 1000) % 60;
     const clock = String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
-    const full = n >= MR.Cards.MAX;
+    const MAX = MR.Cards.max(), full = n >= MAX, all = n + p + u;
     let ready = n > 0 ? plural(n, 'paquet prêt', 'paquets prêts') : 'Aucun paquet prêt';
     if (p > 0) ready += ' + ' + p + ' premium';
-    const timer = full ? 'réserve pleine (10 max)' : 'prochain dans ' + clock;
+    if (u > 0) ready += ' + ' + u + ' ultra';
+    const timer = full ? 'réserve pleine (' + MAX + ' max)' : 'prochain dans ' + clock;
     const set = function (id, txt) { const el = document.getElementById(id); if (el && el.textContent !== txt) el.textContent = txt; };
-    set('cBadge', String(n + p));
-    set('pkBadge', String(n + p));
+    set('cBadge', String(all));
+    set('pkBadge', String(all));
     set('pkCount', ready);
-    set('pkTimer', full ? 'Réserve pleine : 10 paquets max' : 'Prochain paquet dans ' + clock);
+    set('pkTimer', full ? 'Réserve pleine : ' + MAX + ' paquets max' : 'Prochain paquet dans ' + clock);
     set('ovPacks', ready);
     set('ovTimer', timer);
-    set('tabPackN', String(n + p));
+    set('tabPackN', String(all));
     const coll = MR.Cards.distinct() + '/' + MR.CARDS.length;
     set('tabCollN', coll);
     set('pkColl', coll);
     const bar = document.getElementById('pkBar');
     if (bar) bar.style.width = (MR.Cards.cycleProgress() * 100).toFixed(1) + '%';
     const cb = document.getElementById('cToggle');
-    if (cb) cb.classList.toggle('has-packs', n + p > 0);
+    if (cb) cb.classList.toggle('has-packs', all > 0);
     const badge = document.getElementById('cBadge');
-    if (badge) badge.hidden = n + p <= 0;
+    if (badge) badge.hidden = all <= 0;
     if (ov) {
-      const t = curType(), cnt = t === 'premium' ? p : n;
+      const t = curType(), cnt = t === 'ultra' ? u : t === 'premium' ? p : n;
       set('packCountTag', '×' + cnt);
-      set('ppN', String(n)); set('ppP', String(p));
+      set('ppN', String(n)); set('ppP', String(p)); set('ppU', String(u));
       const pick = $('#packPick');
-      pick.hidden = p <= 0;
-      pick.querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+      pick.hidden = p + u <= 0;
+      pick.querySelectorAll('button').forEach(function (b) {
+        b.classList.toggle('on', b.dataset.t === t);
+        if (b.dataset.t === 'ultra') b.hidden = u <= 0;
+        if (b.dataset.t === 'premium') b.hidden = p <= 0;
+      });
       // pendant une ouverture, on ne touche plus à l'apparence du paquet (sinon le premium redevient normal)
-      if (phase === 'idle' && !busy) {
-        packBtn.classList.toggle('premium', t === 'premium');
-        set('packTitle', t === 'premium' ? 'Paquet premium' : 'Paquet de billes');
-        set('packSub', t === 'premium' ? '5 cartes · rare ou mieux' : '5 cartes');
-      }
+      if (phase === 'idle' && !busy) setLook(t);
       ov.classList.toggle('nopack', cnt <= 0);
       $('#packStack').dataset.n = String(Math.min(3, cnt));
       const bo = $('#bOpen');
       bo.disabled = cnt <= 0;
-      bo.textContent = cnt > 0 ? (t === 'premium' ? 'Ouvrir le paquet premium' : 'Ouvrir le paquet') : 'Prochain paquet dans ' + clock;
+      bo.textContent = cnt > 0 ? (t === 'ultra' ? 'Ouvrir le paquet ultra' : t === 'premium' ? 'Ouvrir le paquet premium' : 'Ouvrir le paquet') : 'Prochain paquet dans ' + clock;
     }
   };
 

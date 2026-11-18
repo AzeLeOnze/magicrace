@@ -20,7 +20,9 @@
     diamond:{ core: '#ffe14d', body: '#2a1c05', glow: 'rgba(255,215,60,0.9)' },
     wheel:  { core: '#ff3ea5', body: '#24071c', glow: 'rgba(255,62,165,0.9)' },
     wave:   { core: '#5ff7e6', body: '#071a22', glow: 'rgba(80,240,220,0.8)' },
-    rotor:  { core: '#c78bff', body: '#160a2a', glow: 'rgba(190,120,255,0.9)' }
+    rotor:  { core: '#c78bff', body: '#160a2a', glow: 'rgba(190,120,255,0.9)' },
+    tramp:  { core: '#eafffb', body: '#0a3a3c', glow: 'rgba(63,240,255,0.95)' },
+    open:   { core: '#7dffb0', body: '#0a2a18', glow: 'rgba(80,255,150,0.85)' }
   };
   // halo des billes dans la couche bloom (réduit en 0.0.3)
   const EMISSIVE = { solid: 0.12, nebula: 0.2, magma: 0.42, opal: 0.16, plasma: 0.38, disco: 0.2,
@@ -254,7 +256,7 @@
   /* ---------------- zone d'arrivée (bloom) ---------------- */
   function drawFinish(L, b, v, time, beat, kick) {
     const f = L.finish;
-    if (!f) return;
+    if (!f || f.none) return;
     const bx = f.box;
     if (bx.y1 < v.y0 || bx.y0 - 120 > v.y1) return;
     const bi = Math.floor(beat), T = 60;
@@ -408,7 +410,18 @@
     for (let i = 0; i < W.segs.length; i++) {
       const s = W.segs[i];
       if (s.maxx < v.x0 || s.minx > v.x1 || s.maxy < v.y0 || s.miny > v.y1) continue;
-      tube(b, s.ax, s.ay, s.bx, s.by, s.t, KIND[s.kind] || KIND.wall, 0);
+      tube(b, s.ax, s.ay, s.bx, s.by, s.t, KIND[s.kind] || KIND.wall, s.kick ? 0.35 + s.flash : 0);
+      if (s.kick) {
+        // trampoline : ressorts dessinés sous la toile
+        const dx = s.bx - s.ax, dy = s.by - s.ay, len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len, sg = ny < 0 ? -1 : 1;
+        ctx.strokeStyle = 'rgba(63,240,255,0.55)'; ctx.lineWidth = 2;
+        for (let k = 1; k < 5; k++) {
+          const px = s.ax + dx * k / 5, py = s.ay + dy * k / 5, h = 16 - s.flash * 8;
+          ctx.beginPath(); ctx.moveTo(px, py);
+          for (let z = 1; z <= 4; z++) ctx.lineTo(px + nx * sg * h * z / 4 + (z % 2 ? 5 : -5), py + ny * sg * h * z / 4);
+          ctx.stroke();
+        }
+      }
     }
     // pistons d'égaliseur : pile de LED qui suit la hauteur
     for (let i = 0; i < W.pistons.length; i++) {
@@ -426,8 +439,9 @@
     }
     for (let i = 0; i < W.sliders.length; i++) {
       const s = W.sliders[i];
-      if (Math.max(s.x0, s.x1) < v.x0 || Math.min(s.x0, s.x1) > v.x1 || s.y0 + 20 < v.y0 || s.y0 - 20 > v.y1) continue;
-      tube(b, s.x0, s.y0, s.x1, s.y1, s.t, KIND.gate, (1 - s.q) * 0.6);
+      if (Math.max(s.x0, s.x1) < v.x0 || Math.min(s.x0, s.x1) > v.x1 || Math.max(s.y0, s.y1) + 20 < v.y0 || Math.min(s.y0, s.y1) - 20 > v.y1) continue;
+      const open = s.hold && s.hold.open;
+      tube(b, s.x0, s.y0, s.x1, s.y1, s.t, open ? KIND.open : KIND.gate, open ? s.flash : (1 - s.q) * 0.6 + (s.hold ? 0.25 * Math.abs(Math.sin(time * 5)) : 0));
     }
     for (let i = 0; i < W.arms.length; i++) {
       const a = W.arms[i];
@@ -494,6 +508,65 @@
     }
   }
 
+  // portes de regroupement : compteur « billes arrivées / billes attendues », puis GO !
+  function drawHolds(G, W, b, v, kick) {
+    for (let i = 0; i < W.sliders.length; i++) {
+      const h = W.sliders[i].hold;
+      if (!h || !h.label) continue;
+      const lb = h.label;
+      if (lb.y + 60 < v.y0 || lb.y - 60 > v.y1 || lb.x + 200 < v.x0 || lb.x - 200 > v.x1) continue;
+      if (h.open) {
+        const t = G.raceTime - (h.openAt || 0);
+        if (t < 2.2) neonText(b, 'GO !', lb.x, lb.y, 40, '#7dffb0', Math.max(0, 1 - t / 2.2));
+      } else if (G.state === 'racing' && h.inside > 0) {
+        neonText(b, h.inside + ' / ' + h.need, lb.x, lb.y, 30, '#ffcf4a', 0.55 + 0.35 * kick);
+      }
+    }
+  }
+
+  // niveau 4 : cercles néon qui tournent, vague lumineuse et ondes au rythme de la musique
+  function drawRings(G, W, L, b, beat, kick) {
+    if (!W.rings.length || !L.center) return;
+    const c = L.center, ph = beat - Math.floor(beat);
+    const act = W.rings[W.ringIdx];
+    if (act) {
+      for (let k = 0; k < 2; k++) {
+        const p = (ph + k * 0.5) % 1, rr = act.R + 20 + p * 620;
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.09 * (1 - p)).toFixed(3) + ')';
+        ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(c.x, c.y, rr, 0, TAU); ctx.stroke();
+        b.strokeStyle = MR.rgbStr(act.rgb, 0.3 * (1 - p)); b.lineWidth = 8;
+        b.beginPath(); b.arc(c.x, c.y, rr, 0, TAU); b.stroke();
+      }
+      // halo intérieur qui bat la mesure
+      const g = b.createRadialGradient(c.x, c.y, 0, c.x, c.y, act.R);
+      g.addColorStop(0, MR.rgbStr(act.rgb, 0.05 + 0.12 * kick)); g.addColorStop(1, MR.rgbStr(act.rgb, 0));
+      b.fillStyle = g; b.beginPath(); b.arc(c.x, c.y, act.R, 0, TAU); b.fill();
+    }
+    ctx.lineCap = 'round'; b.lineCap = 'round';
+    for (let k = W.rings.length - 1; k >= W.ringIdx; k--) {
+      const rg = W.rings[k], first = k === W.ringIdx;
+      // une vague de lumière part du centre à chaque temps
+      const dk = k - W.ringIdx - ph * 16, wave = Math.exp(-dk * dk / 5);
+      const p = Math.max(rg.pulse, wave);
+      const a0 = rg.angle + rg.gap, a1 = rg.angle + TAU - rg.gap;
+      const core = first ? [255, 255, 255] : MR.mixRgb(rg.rgb, [255, 255, 255], 0.35 + 0.4 * p);
+      ctx.strokeStyle = MR.rgbStr(core, first ? 1 : 0.55 + 0.45 * p);
+      ctx.lineWidth = rg.t * 2 * (first ? 1.15 : 0.8) + p * 2;
+      ctx.beginPath(); ctx.arc(c.x, c.y, rg.R, a0, a1); ctx.stroke();
+      b.strokeStyle = MR.rgbStr(rg.rgb, (first ? 0.9 : 0.35) + 0.5 * p);
+      b.lineWidth = rg.t * 2 + (first ? 10 : 4) + p * 10;
+      b.beginPath(); b.arc(c.x, c.y, rg.R, a0, a1); b.stroke();
+      if (first) {
+        // bords du trou bien visibles
+        for (let s2 = -1; s2 <= 1; s2 += 2) {
+          const ea = rg.angle + s2 * rg.gap, ex = c.x + Math.cos(ea) * rg.R, ey = c.y + Math.sin(ea) * rg.R;
+          ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(ex, ey, rg.t + 2, 0, TAU); ctx.fill();
+          b.fillStyle = MR.rgbStr(rg.rgb, 1); b.beginPath(); b.arc(ex, ey, rg.t + 8, 0, TAU); b.fill();
+        }
+      }
+    }
+  }
+
   /* ---------------- billes ---------------- */
   const visible = [], specs = [];
   function drawMarbles(G, b, v, time, beat) {
@@ -501,7 +574,7 @@
     visible.length = 0;
     for (let i = 0; i < ms.length; i++) {
       const m = ms[i];
-      if (m.x + 70 > v.x0 && m.x - 70 < v.x1 && m.y + 70 > v.y0 && m.y - 70 < v.y1) visible.push(m);
+      if (!m.out && m.x + 70 > v.x0 && m.x - 70 < v.x1 && m.y + 70 > v.y0 && m.y - 70 < v.y1) visible.push(m);
     }
     if (!visible.length) return;
     ctx.fillStyle = 'rgba(0,0,0,0.36)';
@@ -565,6 +638,7 @@
     for (let i = n; i < rk.length; i++) if (rk[i].cfg.me) idx.unshift(i); // ta bille garde toujours son nom
     for (let k = 0; k < idx.length; k++) {
       const i = idx[k], m = rk[i], me = m.cfg.me;
+      if (m.out) continue;
       if (m.finished && i > 2 && m.id !== G.followId && !me) continue; // bassin d'arrivée : seul le podium garde son nom
       const sx = (m.x - cam.x) * s + cx, sy = (m.y - cam.y) * s + vh / 2 - m.r * s - 6;
       if (sx < -100 || sx > vw + 100 || sy < -20 || sy > vh + 40) continue;
@@ -613,6 +687,8 @@
     drawShapes(L, b, v, time, beat, kick);
     drawBoosts(W, b, v, time);
     drawZones(W, b, v, time);
+    drawRings(G, W, L, b, beat, kick);
+    drawHolds(G, W, b, v, kick);
     for (let i = 0; i < G.marbles.length; i++) {
       const m = G.marbles[i];
       if (m.hist.length && m.x + 300 > v.x0 && m.x - 300 < v.x1 && m.y + 300 > v.y0 && m.y - 300 < v.y1) MR.FX.drawTrail(ctx, b, m, time);

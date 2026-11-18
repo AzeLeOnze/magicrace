@@ -1,5 +1,21 @@
 # MagicRace — journal des versions
 
+## 0.2.0 — 18 novembre 2026
+Progression, comptes et deux niveaux refaits, plus un nouveau.
+
+- Niveaux d'XP : le niveau 2 demande 500 XP, puis chaque niveau demande 22 % de plus. Chaque niveau donne un paquet ; tous les 5 niveaux un paquet premium en plus ; au niveau 50 : 2 premium + 1 ultra ; au niveau 100 : 3 premium + 2 ultra (le cycle recommence à chaque centaine). Niveaux 10, 20… 100 : +1 place dans la réserve de paquets.
+- Quêtes du jour : 3 quêtes tirées au hasard chaque jour à minuit (top 5, 5 courses, 3 niveaux différents, course à 60 billes, course à 30 billes ou plus, ouvrir 3 paquets). Chacune donne 300 XP et un paquet.
+- 55 succès : courses, victoires, top 3 et top 5 (avec 30 billes ou plus), une course dans chaque niveau, collection par rareté, Rypoint et Aze, paquets et paquets premium ouverts, renommer une bille.
+- Récompense quotidienne sur 14 jours, à minuit (heure du joueur), avec un calendrier animé. Une journée oubliée se rattrape jusqu'à midi le lendemain sans perdre la série.
+- Profil (bouton NIV ou touche L) : progression, quêtes, succès, statistiques (courses, victoires, bille préférée, chances de ta bille de finir 1re, top 3 ou top 5 dans chaque niveau, meilleurs temps…) et classement.
+- Comptes et classement des joueurs par XP : le compte (un pseudo) n'est pas obligatoire, mais il faut en avoir un pour voir le classement. Il fonctionne dans la version claude.ai.
+- Paquet ultra : épiques (82 %) et légendaires (18 %), au design holographique. Un paquet des 10 minutes peut cacher un paquet premium (0,8 %) ou ultra (0,3 %) : il se transforme à l'ouverture.
+- Billes coincées : une bille qui ne bouge plus pendant 5 secondes (hors zones d'attente) explose et est éliminée.
+- Niveau 2 « La Grande Roue » rallongé : zigzag de 4 rampes, SAS DISCO et VESTIAIRE (des portes qui attendent que le peloton soit regroupé), descente du bas et bumpers de la finale.
+- Niveau 3 « Plage Disco » plus pêchu et plus groupé : trois bacs de regroupement à large trappe, bumpers feu d'artifice, trampoline, piste de danse accélérée. Écart entre la première et la dernière bille : environ 10 secondes au lieu de 30 à 45.
+- Nouveau niveau 4 « Les Cercles » (plage disco) : autant de cercles que de billes moins une, qui tournent avec un trou. Une bille qui passe par le trou explose et le cercle se brise ; la dernière bille en vie gagne. Les cercles et des ondes lumineuses battent au rythme de la musique.
+- Corrigé : des billes pouvaient se poser entre un picot et le mur (niveaux 1 et 3) ou rester dans le creux d'un demi-tour.
+
 ## 0.1.0 — 18 novembre 2026
 La version PC et téléphone.
 

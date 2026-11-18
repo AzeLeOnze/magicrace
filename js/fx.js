@@ -123,6 +123,13 @@
         c.strokeStyle = s; c.lineWidth = 2.5 * k + 0.5;
         c.beginPath(); c.arc(q.x, q.y, rr, 0, TAU); c.stroke();
         if (b) { b.strokeStyle = s; b.lineWidth = 6 * k + 1; b.beginPath(); b.arc(q.x, q.y, rr, 0, TAU); b.stroke(); }
+      } else if (q.kind === 'shard') {
+        // éclat de cercle brisé : petit trait néon qui tourne en s'éloignant
+        const s = MR.rgbStr(q.rgb, Math.min(1, k * 1.4));
+        const ex = Math.cos(q.rot) * q.size, ey = Math.sin(q.rot) * q.size;
+        c.strokeStyle = s; c.lineWidth = q.w || 4;
+        c.beginPath(); c.moveTo(q.x - ex, q.y - ey); c.lineTo(q.x + ex, q.y + ey); c.stroke();
+        if (b) { b.strokeStyle = s; b.lineWidth = (q.w || 4) * 3; b.beginPath(); b.moveTo(q.x - ex, q.y - ey); b.lineTo(q.x + ex, q.y + ey); b.stroke(); }
       } else if (q.kind === 'dot') {
         const s = MR.rgbStr(q.rgb, k * 0.8);
         c.fillStyle = s;
@@ -337,6 +344,46 @@
       sys.add({ kind: 'confetti', x: MR.rand(x0, x1), y: y + MR.rand(-60, 20), vx: MR.rand(-160, 160), vy: MR.rand(-700, -250),
         g: 520, drag: 1.1, life: l, max: l, size: MR.rand(4, 8), hue: Math.random() * 360, rot: Math.random() * TAU, spin: MR.rand(-10, 10) });
     }
+  };
+
+  // bille éliminée : flash, ondes de choc, éclats lumineux, débris de sa couleur et fumée
+  FX.explode = function (sys, x, y, rgb, r) {
+    const d = MR.fxDensity == null ? 1 : MR.fxDensity, k = (r || 16) / 16;
+    const hot = MR.mixRgb(rgb, [255, 255, 255], 0.6);
+    sys.add({ kind: 'dot', x: x, y: y, vx: 0, vy: 0, life: 0.22, max: 0.22, size: 38 * k, rgb: [255, 255, 255] });
+    sys.add({ kind: 'dot', x: x, y: y, vx: 0, vy: 0, life: 0.45, max: 0.45, size: 26 * k, rgb: hot });
+    for (let i = 0; i < 3; i++) {
+      const l = 0.45 + i * 0.18;
+      sys.add({ kind: 'ring', x: x, y: y, vx: 0, vy: 0, life: l, max: l, size: 10 * k, grow: (110 + i * 70) * k, rgb: i ? rgb : [255, 255, 255] });
+    }
+    const n = Math.round(30 * d);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * TAU, s = MR.rand(260, 900) * k, l = MR.rand(0.35, 0.8);
+      sys.add({ kind: 'spark', x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, g: 500, drag: 2.2, life: l, max: l, size: MR.rand(2, 3.5), rgb: Math.random() < 0.4 ? [255, 240, 200] : hot });
+    }
+    const m = Math.round(16 * d);
+    for (let i = 0; i < m; i++) {
+      const a = Math.random() * TAU, s = MR.rand(120, 520) * k, l = MR.rand(0.6, 1.2);
+      sys.add({ kind: 'pixel', x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 160, g: 1100, drag: 0.8, life: l, max: l, size: MR.rand(3, 6) * k, rgb: rgb });
+    }
+    const sm = Math.round(7 * d);
+    for (let i = 0; i < sm; i++) {
+      const a = Math.random() * TAU, s = MR.rand(20, 90), l = MR.rand(0.8, 1.5);
+      sys.add({ kind: 'smoke', x: x + Math.cos(a) * 6, y: y + Math.sin(a) * 6, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, drag: 1.5, life: l, max: l, size: MR.rand(10, 18) * k, rgb: [60, 40, 80] });
+    }
+  };
+  // cercle brisé (niveau 4) : le cercle vole en éclats autour de son centre
+  FX.shatterRing = function (sys, cx, cy, R, rgb, a0) {
+    const d = MR.fxDensity == null ? 1 : MR.fxDensity;
+    const n = Math.max(10, Math.round(Math.min(80, R / 9) * (0.4 + 0.6 * d)));
+    for (let i = 0; i < n; i++) {
+      const a = (a0 || 0) + (i + Math.random() * 0.6) / n * TAU;
+      const px = cx + Math.cos(a) * R, py = cy + Math.sin(a) * R;
+      const s = MR.rand(120, 420), l = MR.rand(0.7, 1.4);
+      sys.add({ kind: 'shard', x: px, y: py, vx: Math.cos(a) * s + MR.rand(-60, 60), vy: Math.sin(a) * s + MR.rand(-60, 60), g: 300, drag: 1.4,
+        life: l, max: l, size: MR.rand(6, 14), w: MR.rand(2.5, 4.5), rot: a + Math.PI / 2, spin: MR.rand(-9, 9), rgb: Math.random() < 0.25 ? [255, 255, 255] : rgb });
+    }
+    sys.add({ kind: 'ring', x: cx, y: cy, vx: 0, vy: 0, life: 0.7, max: 0.7, size: R, grow: 160, rgb: rgb });
   };
 
   MR.FX = FX;

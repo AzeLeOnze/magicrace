@@ -174,6 +174,7 @@
   function onKey(e) {
     if (MR.Packs && MR.Packs.isOpen()) return; // la surcouche des cartes gère ses propres touches
     if (MR.Settings && MR.Settings.isOpen()) return;
+    if (MR.Profile && MR.Profile.isOpen()) return;
     const tag = (e.target && e.target.tagName) || '';
     if (e.key === 'Escape') {
       if (!$('#editor').hidden) { UI.closeEditor(); return; }
@@ -192,6 +193,8 @@
     else if (k === 'c') UI.setPanel(!panelOpen);
     else if (k === 'k') MR.Packs.show('packs');
     else if (k === 's') MR.Settings.open();
+    else if (k === 'l') MR.Profile.open('prog');
+    else if (k === 'j') MR.Profile.openDaily();
     else if (k === 'v') {
       const order = ['leader', 'pack', 'overview'];
       const next = order[(order.indexOf(G.settings.camera) + 1) % order.length];
@@ -225,9 +228,9 @@
     cdTimer = setTimeout(function () { el.innerHTML = ''; }, 980);
   };
 
-  UI.banner = function (name) {
+  UI.banner = function (name, survival) {
     const el = $('#banner');
-    el.innerHTML = '<span class="crown" aria-hidden="true">♛</span><span class="bn">' + MR.esc(name) + ' remporte la course !</span>';
+    el.innerHTML = '<span class="crown" aria-hidden="true">♛</span><span class="bn">' + MR.esc(name) + (survival ? ' survit à tous les cercles !' : ' remporte la course !') + '</span>';
     el.hidden = false;
     clearTimeout(bannerTimer);
     bannerTimer = setTimeout(UI.hideBanner, 4200);
@@ -248,12 +251,15 @@
     $('#hudHint').hidden = bs === 'hidden' || window.innerWidth < 640;
     if (bs === 'hidden') return;
     const max = bs === '5' ? 5 : bs === '10' ? 10 : bs === 'all' ? rk.length : (window.innerWidth < 640 ? 5 : window.innerHeight < 760 ? 6 : 10);
+    const surv = G.level.mode === 'survival';
     let html = '';
     for (let i = 0; i < Math.min(rk.length, max); i++) {
       const m = rk[i];
       let right = '';
-      if (m.dnf) right = 'abandon';
-      else if (m.finished) right = MR.formatTime(m.time);
+      if (m.out) right = '💥 ' + MR.formatTime(m.elimAt);
+      else if (m.dnf) right = 'abandon';
+      else if (m.finished) right = surv ? 'survivante' : MR.formatTime(m.time);
+      else if (surv) right = G.state === 'racing' ? 'en vie' : '';
       else if (G.state !== 'ready' && G.state !== 'countdown') right = Math.round(G.progress(m)) + ' %';
       const cls = 'brow' + (m.finished && !m.dnf ? ' done' : '') + (i === 0 && G.state !== 'ready' ? ' gold' : '') + (G.followId === m.id ? ' follow' : '') + (m.cfg.me ? ' me' : '');
       html += '<li class="' + cls + '" data-id="' + m.id + '" style="--c:' + m.cfg.color + '" title="Suivre ' + MR.esc(m.cfg.name) + '">' +
@@ -265,7 +271,7 @@
       const m = rk[mine];
       html += '<li class="brow me' + (G.followId === m.id ? ' follow' : '') + '" data-id="' + m.id + '" style="--c:' + m.cfg.color + '"><span class="rk">' + (mine + 1) +
         '</span><span class="dot"></span><span class="nm">★ ' + MR.esc(m.cfg.name) + '</span><span class="tm">' +
-        (m.finished && !m.dnf ? MR.formatTime(m.time) : (G.state === 'racing' ? Math.round(G.progress(m)) + ' %' : '')) + '</span></li>';
+        (m.out ? '💥' : m.finished && !m.dnf ? (surv ? 'survivante' : MR.formatTime(m.time)) : (G.state === 'racing' ? (surv ? 'en vie' : Math.round(G.progress(m)) + ' %') : '')) + '</span></li>';
     }
     if (rk.length > max) html += '<li class="board-more">+ ' + (rk.length - max) + ' autre' + (rk.length - max > 1 ? 's' : '') + '</li>';
     $('#board').innerHTML = html;
@@ -294,6 +300,7 @@
       inp.addEventListener('change', function () {
         const c = G.roster.find(function (r) { return r.id === cfg.id; });
         if (c) inp.value = c.name;
+        G.commitRename();
       });
       inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') inp.blur(); });
       const tags = document.createElement('span');
@@ -606,10 +613,12 @@
   UI.showResults = function () {
     const rk = G.ranking, GL = MR.MarbleGL;
     const done = rk.filter(function (m) { return m.finished && !m.dnf; });
-    const winner = done[0];
+    const winner = done[0], surv = G.level.mode === 'survival';
+    const boom = rk.filter(function (m) { return m.out && m.dnf; }).length;
     $('#resTitle').textContent = 'Classement';
     $('#resSub').textContent = G.levelDef.name + ' · ' + rk.length + ' bille' + (rk.length > 1 ? 's' : '') +
-      (winner ? ' · victoire en ' + MR.formatTime(winner.time) : '');
+      (winner ? (surv ? ' · dernière en vie après ' : ' · victoire en ') + MR.formatTime(surv ? G.raceTime : winner.time) : '') +
+      (boom ? ' · ' + boom + ' bille' + (boom > 1 ? 's' : '') + ' coincée' + (boom > 1 ? 's' : '') + ' (💥)' : '');
     const rw = $('#resReward');
     rw.hidden = !G.reward;
     if (G.reward) rw.innerHTML = '★ Ta bille finit ' + (G.reward.rank === 1 ? '1re' : G.reward.rank + 'e') + ' : tu gagnes <b>' + MR.esc(G.reward.text) + '</b>';
@@ -627,7 +636,7 @@
       cv.width = 116; cv.height = 116;
       cv.setAttribute('aria-hidden', 'true');
       const pn = document.createElement('span'); pn.className = 'pn'; pn.textContent = m.cfg.name;
-      const pt = document.createElement('span'); pt.className = 'pt'; pt.textContent = MR.formatTime(m.time);
+      const pt = document.createElement('span'); pt.className = 'pt'; pt.textContent = surv ? (idx === 0 ? 'survivante' : '💥 ' + MR.formatTime(m.time)) : MR.formatTime(m.time);
       const blk = document.createElement('div'); blk.className = 'blk'; blk.textContent = String(idx + 1);
       d.append(cv, pn, pt, blk);
       pod.append(d);
@@ -641,8 +650,9 @@
     });
     let html = '';
     rk.forEach(function (m, i) {
-      html += '<li style="--c:' + m.cfg.color + '"><span class="rk">' + (m.dnf ? '—' : ordinal(i + 1)) + '</span><span class="dot"></span><span class="nm">' +
-        MR.esc(m.cfg.name) + '</span><span class="tm">' + (m.dnf ? 'abandon' : MR.formatTime(m.time)) + '</span></li>';
+      const tm = m.out && m.dnf ? '💥 coincée' : m.dnf ? 'abandon' : surv ? (m.out ? '💥 ' + MR.formatTime(m.time) : 'survivante') : MR.formatTime(m.time);
+      html += '<li style="--c:' + m.cfg.color + '"' + (m.cfg.me ? ' class="me"' : '') + '><span class="rk">' + (m.dnf ? '—' : ordinal(i + 1)) + '</span><span class="dot"></span><span class="nm">' +
+        (m.cfg.me ? '★ ' : '') + MR.esc(m.cfg.name) + '</span><span class="tm">' + tm + '</span></li>';
     });
     const list = $('#resList');
     list.innerHTML = html;
@@ -656,6 +666,7 @@
   let fpsN = 0, fpsT = 0;
   UI.frame = function (dt) {
     if (MR.Packs) MR.Packs.frame(dt);
+    if (MR.Profile) MR.Profile.frame(dt);
     if (G.settings.fps) {
       fpsN++; fpsT += dt;
       if (fpsT >= 0.5) { $('#fps').textContent = Math.round(fpsN / fpsT) + ' i/s'; fpsN = 0; fpsT = 0; }

@@ -707,5 +707,51 @@
     send(tone('triangle', 2093, t + 0.07, 0.06, 0.3, sfxBus), sfxRev, 0.5);
   };
 
+  /* ---------------- 0.2.0 : explosions, cercles, progression ---------------- */
+  // bille éliminée : détonation courte et grave, plus un éclat de verre
+  A.explode = function (pan, v) {
+    if (!ctx || !S.sfx || !voice(0.8)) return;
+    const t = ctx.currentTime + 0.004, d = out(pan), k = clamp(v == null ? 1 : v, 0.2, 1);
+    tone('sine', 150, t, 0.7 * k, 0.55, d, 38, 0.45);
+    const n = noise(t, 0.5), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(3800, t); lp.frequency.exponentialRampToValueAtTime(120, t + 0.45);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5 * k, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    n.connect(lp); lp.connect(g); g.connect(d); send(g, sfxRev, 0.45);
+    [2637, 3520, 4186].forEach(function (f, i) { tone('triangle', f * MR.rand(0.95, 1.05), t + 0.02 + i * 0.025, 0.05 * k, 0.18, d); });
+  };
+  // un cercle du niveau 4 se brise
+  A.ringBreak = function (pan) {
+    if (!ctx || !S.sfx) return;
+    const t = ctx.currentTime + 0.01, d = out(pan);
+    sweepNoise(t, 0.35, 6000, 900, 3, 0.18, d, 0.01);
+    [88, 91, 95, 100].forEach(function (nn, i) { send(tone('triangle', midi(nn), t + i * 0.035, 0.05, 0.45, d), sfxRev, 0.6); });
+  };
+  // pulsation des cercles sur le temps
+  A.pulse = function () {
+    if (!ctx || !S.sfx) return;
+    const t = ctx.currentTime + 0.004;
+    tone('sine', 196, t, 0.05, 0.12, sfxBus, 392, 0.06);
+  };
+  A.questDone = function () {
+    if (!ctx || !S.sfx) return;
+    const t = ctx.currentTime + 0.01;
+    [72, 76, 79, 84].forEach(function (nn, i) { bell(t + i * 0.08, nn + 12, 0.08); });
+  };
+  A.levelUp = function () {
+    if (!ctx || !S.sfx) return;
+    const t = ctx.currentTime + 0.02;
+    boom(t, false);
+    chord(t + 0.05, [50, 57, 62, 65, 69, 74], 2.4, 0.05, 'sawtooth', 3600);
+    [74, 77, 81, 86, 89, 93, 98].forEach(function (nn, i) { send(tone('square', midi(nn), t + 0.2 + i * 0.06, 0.03, 0.35, sfxBus), sfxRev, 0.6); });
+  };
+  A.coin = function () {
+    if (!ctx || !S.sfx) return;
+    const t = ctx.currentTime + 0.004;
+    tone('square', 988, t, 0.05, 0.08, sfxBus);
+    send(tone('square', 1319, t + 0.07, 0.05, 0.3, sfxBus), sfxRev, 0.4);
+  };
+
   MR.Audio = A;
 })(window.MR);

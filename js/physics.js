@@ -28,7 +28,14 @@
       boosts: def.boosts.map(function (b) { return Object.assign({ hot: 0 }, b); }),
       zones: (def.zones || []).map(function (z) { return Object.assign({}, z, { hot: 0 }); }),
       pistons: (def.pistons || []).map(function (p) { return Object.assign({ flash: 0, top: p.base, vtop: 0 }, p); }),
-      sliders: (def.sliders || []).map(function (s) { return Object.assign({ flash: 0, q: 0, vx: 0, vy: 0, x0: s.ax, y0: s.ay, x1: s.bx, y1: s.by }, s); }),
+      sliders: (def.sliders || []).map(function (s) {
+        const o = Object.assign({ flash: 0, q: 0, vx: 0, vy: 0, x0: s.ax, y0: s.ay, x1: s.bx, y1: s.by }, s);
+        if (s.hold) o.hold = Object.assign({}, s.hold, { open: false, first: -1, inside: 0, need: 0 });
+        return o;
+      }),
+      // cercles tournants à trou (niveau 4) : seul le plus petit encore entier est solide
+      rings: (def.rings || []).map(function (r) { return Object.assign({ flash: 0, alive: true, pulse: 0, gap0: r.gap, omega0: r.omega }, r); }),
+      ringIdx: 0,
       marbles: [],
       events: [],
       t: 0
@@ -78,6 +85,8 @@
     return vn;
   }
 
+  // dernier contact de capsule (normale et vitesse d'approche), pour les trampolines
+  const HIT = { nx: 0, ny: 0, vn: 0 };
   function capsule(w, m, ax, ay, bx, by, t, e, obj, kind, omega, px, py, svx0, svy0) {
     const abx = bx - ax, aby = by - ay, l2 = abx * abx + aby * aby;
     let u = l2 > 0 ? ((m.x - ax) * abx + (m.y - ay) * aby) / l2 : 0;
@@ -85,7 +94,7 @@
     const cx = ax + abx * u, cy = ay + aby * u;
     const dx = m.x - cx, dy = m.y - cy;
     const R = m.r + t, d2 = dx * dx + dy * dy;
-    if (d2 >= R * R) return;
+    if (d2 >= R * R) return false;
     let d = Math.sqrt(d2), nx, ny;
     if (d < 1e-6) {
       const l = Math.sqrt(l2) || 1;
@@ -97,7 +106,34 @@
     m.y += ny * (R - d);
     let svx = svx0 || 0, svy = svy0 || 0;
     if (omega) { svx = -omega * (cy - py); svy = omega * (cx - px); }
-    contact(w, m, nx, ny, e, svx, svy, obj, kind);
+    HIT.nx = nx; HIT.ny = ny;
+    HIT.vn = contact(w, m, nx, ny, e, svx, svy, obj, kind);
+    return true;
+  }
+
+  function wrapA(a) {
+    while (a > Math.PI) a -= MR.TAU;
+    while (a < -Math.PI) a += MR.TAU;
+    return a;
+  }
+  // bille contre un cercle tournant percé d'un trou (angle du trou = rg.angle, demi-ouverture rg.gap)
+  function ringContact(w, m, rg) {
+    const dx = m.x - rg.cx, dy = m.y - rg.cy;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+    if (Math.abs(d - rg.R) >= m.r + rg.t + 2) return;
+    const rel = wrapA(Math.atan2(dy, dx) - rg.angle);
+    let px, py;
+    if (Math.abs(rel) > rg.gap) { px = rg.cx + dx / d * rg.R; py = rg.cy + dy / d * rg.R; }
+    else {
+      const ea = rg.angle + (rel > 0 ? rg.gap : -rg.gap);
+      px = rg.cx + Math.cos(ea) * rg.R; py = rg.cy + Math.sin(ea) * rg.R;
+    }
+    const qx = m.x - px, qy = m.y - py, RR = m.r + rg.t, q2 = qx * qx + qy * qy;
+    if (q2 >= RR * RR) return;
+    let q = Math.sqrt(q2), nx, ny;
+    if (q < 1e-6) { nx = -dx / d; ny = -dy / d; q = 0; } else { nx = qx / q; ny = qy / q; }
+    m.x += nx * (RR - q); m.y += ny * (RR - q);
+    contact(w, m, nx, ny, rg.e, -rg.omega * (py - rg.cy), rg.omega * (px - rg.cx), rg, 'ring', 0);
   }
 
   function step(w, dt) {
@@ -135,12 +171,19 @@
     updPistons(w, dt);
     // portes coulissantes des sas : fermées, glissent dans le mur, restent ouvertes, reviennent
     for (k = 0; k < w.sliders.length; k++) {
-      const s = w.sliders[k], c = s.cycle, ph = (w.t + c.off) % c.period;
+      const s = w.sliders[k], c = s.cycle;
       let q;
-      if (ph < c.closed) q = 0;
-      else if (ph < c.closed + c.move) q = (ph - c.closed) / c.move;
-      else if (ph < c.period - c.move) q = 1;
-      else q = 1 - (ph - (c.period - c.move)) / c.move;
+      if (s.hold) {
+        // porte de regroupement : la course (main.js) décide quand elle s'ouvre ; elle glisse puis reste ouverte
+        s.hold.p = MR.clamp((s.hold.p || 0) + (s.hold.open ? 1 : -1) * dt / (c.move || 0.5), 0, 1);
+        q = s.hold.p;
+      } else {
+        const ph = (w.t + c.off) % c.period;
+        if (ph < c.closed) q = 0;
+        else if (ph < c.closed + c.move) q = (ph - c.closed) / c.move;
+        else if (ph < c.period - c.move) q = 1;
+        else q = 1 - (ph - (c.period - c.move)) / c.move;
+      }
       q = q * q * (3 - 2 * q);
       const dq = dt > 0 ? (q - s.q) / dt : 0;
       s.q = q;
@@ -152,6 +195,8 @@
       const c = w.circles[k];
       if (c.spin) { c.omega = c.spin * Math.sin(w.t * c.freq + (c.ph || 0)); c.angle = (c.angle || 0) + c.omega * dt; }
     }
+    for (k = w.ringIdx; k < w.rings.length; k++) w.rings[k].angle += w.rings[k].omega * dt;
+    const ring = w.rings[w.ringIdx] || null;
 
     // intégration (une bille tenue au curseur suit sa cible, sans gravité)
     for (i = 0; i < n; i++) {
@@ -199,8 +244,14 @@
         for (k = 0; k < w.segs.length; k++) {
           const s = w.segs[k];
           if (x1 < s.minx || x0 > s.maxx || y1 < s.miny || y0 > s.maxy) continue;
-          capsule(w, m, s.ax, s.ay, s.bx, s.by, s.t, s.e, s, s.kind, 0, 0, 0);
+          // trampoline : renvoie la bille avec une poussée supplémentaire
+          if (capsule(w, m, s.ax, s.ay, s.bx, s.by, s.t, s.e, s, s.kind, 0, 0, 0) && s.kick && HIT.vn < -40) {
+            m.vx += HIT.nx * s.kick; m.vy += HIT.ny * s.kick;
+            s.flash = 1;
+            w.events.push({ m: m, s: 400, kind: 'tramp', obj: s });
+          }
         }
+        if (ring) ringContact(w, m, ring);
         for (k = 0; k < w.circles.length; k++) {
           const c = w.circles[k];
           const dx = m.x - c.x, dy = m.y - c.y, R = m.r + c.r;

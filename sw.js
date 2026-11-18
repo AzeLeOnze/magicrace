@@ -1,5 +1,5 @@
-// MagicRace 0.1.0 : cache hors ligne. Fabrication 20261118-173047 (change à chaque fois, pour que les mises à jour arrivent).
-const VERSION = 'magicrace-20261118-173047';
+// MagicRace 0.2.0 : cache hors ligne. Fabrication 20261118-220659 (change à chaque fois, pour que les mises à jour arrivent).
+const VERSION = 'magicrace-20261118-220659';
 const FONTS = 'magicrace-fonts';
 const SHELL = [
   './',
@@ -9,20 +9,23 @@ const SHELL = [
   './icons/icon-512.png?v=1',
   './icons/icon-maskable-512.png?v=1',
   './icons/apple-touch-icon.png?v=1',
-  './js/util.js?v=0.1.0.5',
-  './js/catalog.js?v=0.1.0.5',
-  './js/cards.js?v=0.1.0.5',
-  './js/sync.js?v=0.1.0.5',
-  './js/audio.js?v=0.1.0.5',
-  './js/marbleGL.js?v=0.1.0.5',
-  './js/physics.js?v=0.1.0.5',
-  './js/levels.js?v=0.1.0.5',
-  './js/fx.js?v=0.1.0.5',
-  './js/render.js?v=0.1.0.5',
-  './js/ui.js?v=0.1.0.5',
-  './js/packs.js?v=0.1.0.5',
-  './js/settings.js?v=0.1.0.5',
-  './js/main.js?v=0.1.0.5'
+  './js/util.js?v=0.2.0.15',
+  './js/catalog.js?v=0.2.0.15',
+  './js/cards.js?v=0.2.0.15',
+  './js/sync.js?v=0.2.0.15',
+  './js/audio.js?v=0.2.0.15',
+  './js/marbleGL.js?v=0.2.0.15',
+  './js/physics.js?v=0.2.0.15',
+  './js/levels.js?v=0.2.0.15',
+  './js/fx.js?v=0.2.0.15',
+  './js/render.js?v=0.2.0.15',
+  './js/ui.js?v=0.2.0.15',
+  './js/packs.js?v=0.2.0.15',
+  './js/settings.js?v=0.2.0.15',
+  './js/progress.js?v=0.2.0.15',
+  './js/account.js?v=0.2.0.15',
+  './js/profile.js?v=0.2.0.15',
+  './js/main.js?v=0.2.0.15'
 ];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

@@ -12,7 +12,8 @@
     zoom: 1, camSmooth: 'normal', followMe: false, labelSize: 12, board: 'auto', countdown: true,
     sfxMarble: true, cardFast: false, shake: true };
   const FIXED = 1 / 120, SUB = 4;
-  const RACE_LIMIT = 180; // secondes : au-delà, les billes restantes abandonnent
+  const RACE_LIMIT = 240; // secondes (par défaut) : au-delà, les billes restantes abandonnent
+  const STUCK_T = 5;      // une bille qui ne bouge plus pendant 5 s (hors sas) est éliminée
 
   const G = MR.Game = {
     state: 'ready', paused: false, time: 0, raceTime: 0, cd: 0, cdShown: 0,
@@ -75,11 +76,14 @@
 
   /* ---------------- sauvegarde dans le compte (voir sync.js) ---------------- */
   G.exportSave = function () {
-    return { v: 2, cards: MR.Cards.exportState(), roster: G.roster.map(function (m) { return Object.assign({}, m); }), rosterAt: rosterAt };
+    return { v: 3, cards: MR.Cards.exportState(), roster: G.roster.map(function (m) { return Object.assign({}, m); }), rosterAt: rosterAt,
+      prog: MR.Prog.exportState(), account: MR.Account.exportState() };
   };
   G.importSave = function (d) {
     if (!d || typeof d !== 'object') return;
-    const before = MR.Cards.distinct();
+    const before = MR.Cards.distinct(), xpBefore = MR.Prog.xp();
+    if (d.prog) MR.Prog.importState(d.prog);
+    if (d.account) MR.Account.importState(d.account);
     if (d.cards) MR.Cards.importState(d.cards);
     const remoteAt = typeof d.rosterAt === 'number' ? d.rosterAt : 0;
     let rosterChangedNow = false;
@@ -96,8 +100,9 @@
     }
     MR.UI.refreshUnlocks();
     MR.Packs.updateCounters();
+    if (MR.Profile) MR.Profile.refresh();
     if (rosterChangedNow) G.reset(false, false);
-    if (rosterChangedNow || MR.Cards.distinct() > before) MR.UI.toast('Progression récupérée depuis ton compte');
+    if (rosterChangedNow || MR.Cards.distinct() > before || MR.Prog.xp() > xpBefore) MR.UI.toast('Progression récupérée depuis ton compte');
   };
 
   /* ---------------- billes ---------------- */
@@ -106,7 +111,8 @@
       id: cfg.id, cfg: cfg, x: slot.x + MR.rand(-2, 2), y: slot.y, vx: 0, vy: 0, r: r,
       angle: Math.random() * MR.TAU, spin: 0, spinT: 0, touch: false,
       finished: false, dnf: false, rank: 0, time: 0, still: 0, lastSound: -1, pos: 0,
-      hist: [], emit: 0, spec: null, boost: 0
+      hist: [], emit: 0, spec: null, boost: 0,
+      out: false, elimAt: 0, wp: 0, ax: 0, ay: 0, at: 0
     };
     refreshLook(m);
     return m;
@@ -128,11 +134,15 @@
   };
 
   G.reset = function (announce, snap) {
+    // le niveau 4 dépend du nombre de billes (autant de cercles que de billes, moins une)
+    if (G.levelDef.perCount) G.level = G.levelDef.build(G.roster.length);
     const L = G.level;
     G.world = MR.Physics.createWorld(L);
     const slots = L.spawnSlots(G.roster.length);
     G.marbles = G.roster.map(function (cfg, i) { return makeBody(cfg, slots[i] || slots[0], L.marbleR); });
-    G.world.marbles = G.marbles;
+    // la physique a sa propre liste : une bille éliminée en sort, mais reste au classement
+    G.world.marbles = G.marbles.slice();
+    G.beatN = -1; G.lastEscape = 0; G.counted = false;
     G.state = 'ready';
     G.paused = false;
     G.moved = false;
@@ -167,6 +177,7 @@
     G.state = 'racing';
     G.raceTime = 0;
     G.world.arms.forEach(function (a) { if (a.kind === 'door') a.omega = a.openSpeed; });
+    G.marbles.forEach(function (m) { m.ax = m.x; m.ay = m.y; m.at = 0; });
     MR.UI.countdown('GO');
     MR.Audio.countBeep(true);
     MR.UI.onState();
@@ -178,34 +189,157 @@
     MR.UI.onState();
   };
 
-  function finish(m) {
+  // récompense si c'est la bille du joueur, sur le podium, avec au moins 30 billes en course
+  function award(m) {
+    if (!m.cfg.me || m.rank < 1 || m.rank > 3 || G.marbles.length < G.REWARD_MIN || G.simulating) return;
+    const R = [null, { premium: 1, text: 'un paquet premium' }, { packs: 2, text: '2 paquets de cartes' }, { packs: 1, text: 'un paquet de cartes' }][m.rank];
+    MR.Cards.grant(R.packs || 0, R.premium || 0);
+    G.reward = { rank: m.rank, text: R.text };
+    MR.Packs.updateCounters();
+    setTimeout(function () { MR.UI.toast('Ta bille finit ' + (m.rank === 1 ? '1re' : m.rank + 'e') + ' : tu gagnes ' + R.text + ' !'); MR.Audio.newBadge(); }, m.rank === 1 ? 1500 : 200);
+  }
+
+  function finish(m, rank) {
     m.finished = true;
-    m.rank = ++G.finishCount;
+    m.rank = rank || ++G.finishCount;
     m.time = G.raceTime;
     MR.Audio.finishChime(m.rank);
     MR.FX.burst(G.fx, m.x, m.y, m.rgb, m.rank === 1 ? 40 : 18);
-    // récompense si c'est la bille du joueur, sur le podium, avec au moins 30 billes en course
-    if (m.cfg.me && m.rank <= 3 && G.marbles.length >= G.REWARD_MIN && !G.simulating) {
-      const R = [null, { premium: 1, text: 'un paquet premium' }, { packs: 2, text: '2 paquets de cartes' }, { packs: 1, text: 'un paquet de cartes' }][m.rank];
-      MR.Cards.grant(R.packs || 0, R.premium || 0);
-      G.reward = { rank: m.rank, text: R.text };
-      MR.Packs.updateCounters();
-      setTimeout(function () { MR.UI.toast('Ta bille finit ' + (m.rank === 1 ? '1re' : m.rank + 'e') + ' : tu gagnes ' + R.text + ' !'); MR.Audio.newBadge(); }, m.rank === 1 ? 1500 : 200);
-    }
+    award(m);
     if (m.rank === 1) {
-      MR.UI.banner(m.cfg.name);
+      MR.UI.banner(m.cfg.name, G.level.mode === 'survival');
       MR.Audio.fanfare();
       const b = G.level.finish.box;
-      MR.FX.confetti(G.fx, b.x0 + 60, b.x1 - 60, b.y1 - 40, 140);
+      MR.FX.confetti(G.fx, b.x0 + 60, b.x1 - 60, G.level.mode === 'survival' ? m.y : b.y1 - 40, 140);
     }
     MR.UI.boardDirty = true;
   }
+
+  // élimination : la bille explose et sort de la piste (elle reste au classement)
+  function eliminate(m, rank) {
+    if (m.out) return;
+    m.out = true;
+    m.finished = true;
+    m.elimAt = G.raceTime;
+    m.time = G.raceTime;
+    m.held = false;
+    m.hist.length = 0;
+    if (rank) { m.rank = rank; m.dnf = false; } else { m.rank = 0; m.dnf = true; }
+    const i = G.world.marbles.indexOf(m);
+    if (i >= 0) G.world.marbles.splice(i, 1);
+    G.explosions = (G.explosions || 0) + 1;
+    if (G.followId === m.id) G.followId = null;
+    if (!G.simulating) {
+      MR.FX.explode(G.fx, m.x, m.y, m.rgb, m.r);
+      const cam = MR.Render.cam;
+      MR.Audio.explode(MR.clamp((m.x - cam.x) * cam.s / (MR.Render.vw / 2), -1, 1) * 0.7, 0.8);
+      if (m.cfg.me) MR.UI.toast(rank ? '💥 Ta bille est éliminée : ' + ordinalF(rank) : '💥 Ta bille était coincée : elle explose !');
+    }
+    award(m);
+    MR.UI.boardDirty = true;
+  }
+  function ordinalF(n) { return n === 1 ? '1re' : n + 'e'; }
+  G.eliminate = eliminate;
 
   function endRace() {
     G.state = 'finished';
     G.resultsIn = 1.6;
     G.followId = null;
     MR.UI.onState();
+    recordRace();
+  }
+  // statistiques, quêtes et succès (pas pendant les simulations de test)
+  function recordRace() {
+    if (G.simulating || G.counted) return;
+    G.counted = true;
+    computeRanking();
+    const me = G.marbles.find(function (m) { return m.cfg.me; });
+    const win = G.ranking[0] && G.ranking[0].finished && !G.ranking[0].dnf ? G.ranking[0] : null;
+    MR.Prog.onRaceEnd({
+      levelId: G.levelDef.id, mode: G.level.mode || 'race', count: G.marbles.length,
+      rank: me && !me.dnf ? me.rank : 0, time: me && !me.dnf ? me.time : 0, out: !!(me && me.out && me.dnf),
+      myName: me ? me.cfg.name : '', winnerName: win ? win.cfg.name : '', raceTime: G.raceTime, explosions: G.explosions || 0
+    });
+  }
+
+  function inBox(m, z) { return m.x > z.x0 && m.x < z.x1 && m.y > z.y0 && m.y < z.y1; }
+
+  // portes de regroupement : fermées tant que le gros du peloton n'est pas arrivé (ou qu'on attend depuis trop longtemps)
+  function updateHolds() {
+    const sl = G.world.sliders;
+    for (let k = 0; k < sl.length; k++) {
+      const s = sl[k], h = s.hold;
+      if (!h || h.open) continue;
+      let inside = 0, behind = 0;
+      for (let i = 0; i < G.marbles.length; i++) {
+        const m = G.marbles[i];
+        if (m.finished) continue;
+        if ((m.pv || 0) <= h.pv) behind++;
+        if (inBox(m, h.zone)) inside++;
+      }
+      h.inside = inside;
+      h.need = Math.max(1, Math.ceil(behind * h.ratio));
+      if (inside > 0 && h.first < 0) h.first = G.raceTime;
+      if ((inside > 0 && inside >= h.need) || (h.first >= 0 && G.raceTime - h.first > h.maxWait)) {
+        h.open = true;
+        h.openAt = G.raceTime;
+        if (!G.simulating) { MR.Audio.countBeep(true); s.flash = 1; }
+      }
+    }
+  }
+
+  // niveau 4 : une bille qui passe par le trou du plus petit cercle explose, et le cercle se brise
+  function updateSurvival(dt) {
+    const W = G.world, L = G.level;
+    let rg = W.rings[W.ringIdx] || null;
+    const alive = G.marbles.filter(function (m) { return !m.out; });
+    if (rg) {
+      for (let i = 0; i < alive.length; i++) {
+        const m = alive[i], dx = m.x - rg.cx, dy = m.y - rg.cy;
+        if (dx * dx + dy * dy > Math.pow(rg.R + rg.t + m.r * 0.2, 2)) {
+          eliminate(m, alive.length);
+          rg.alive = false;
+          W.ringIdx++;
+          G.lastEscape = G.raceTime;
+          if (!G.simulating) {
+            MR.FX.shatterRing(G.fx, rg.cx, rg.cy, rg.R, rg.rgb, rg.angle);
+            MR.Audio.ringBreak(0);
+          }
+          break;
+        }
+      }
+    }
+    const left = G.marbles.filter(function (m) { return !m.out; });
+    if (left.length <= 1) {
+      if (left[0]) finish(left[0], 1);
+      endRace();
+      return;
+    }
+    rg = W.rings[W.ringIdx] || null;
+    if (!rg) return;
+    // personne ne sort depuis 4 s : le trou s'élargit peu à peu (jusqu'à 2,2 fois)
+    if (G.raceTime - G.lastEscape > 4) rg.gap = Math.min(rg.gap0 * 2.2, rg.gap + rg.gap0 * 0.15 * dt);
+    // le cercle actif file quand son trou est en haut (loin des billes), puis ralentit en arrivant en bas
+    let off = (rg.angle - Math.PI / 2) % MR.TAU;
+    if (off > Math.PI) off -= MR.TAU; else if (off < -Math.PI) off += MR.TAU;
+    rg.omega = rg.omega0 * (Math.abs(off) > Math.PI * 0.45 ? L.hunt || 2.6 : 1);
+    // sur chaque temps de la musique, le cercle pulse ; tous les `beatEvery` temps, les billes reçoivent une poussée
+    // (plus forte si personne ne s'échappe depuis un moment)
+    const beat = G.simulating || !MR.Audio.ready() ? G.raceTime * 116 / 60 : MR.Audio.beat();
+    const bn = Math.floor(beat);
+    if (bn !== G.beatN) {
+      const first = G.beatN < 0;
+      G.beatN = bn;
+      if (first) return;
+      for (let k = W.ringIdx; k < W.rings.length; k++) W.rings[k].pulse = 1;
+      if (bn % (L.beatEvery || 1)) return;
+      const K = (L.beatKick || 200) * Math.min(3, 1 + Math.max(0, G.raceTime - G.lastEscape - 4) * 0.2);
+      for (let i = 0; i < left.length; i++) {
+        const m = left[i], a = Math.random() * MR.TAU;
+        m.vx += Math.cos(a) * K;
+        m.vy += Math.sin(a) * K - K * 0.25;
+      }
+    }
   }
 
   function stateUpdate(dt, dtR) {
@@ -219,27 +353,28 @@
       }
       if (G.cd <= 0) go();
     } else if (G.state === 'racing') {
-      const f = G.level.finish;
-      let left = 0;
-      for (let i = 0; i < G.marbles.length; i++) {
-        const m = G.marbles[i];
-        if (m.finished) continue;
-        if (m.y > f.y && m.x > f.box.x0 && m.x < f.box.x1) { finish(m); continue; }
-        left++;
-        const sp = Math.sqrt(m.vx * m.vx + m.vy * m.vy);
-        // dans un sas, attendre est normal : pas de coup de pouce
-        let calm = false;
-        const cz = G.level.calm || [];
-        for (let k = 0; k < cz.length; k++) { const z = cz[k]; if (m.x > z.x0 && m.x < z.x1 && m.y > z.y0 && m.y < z.y1) { calm = true; break; } }
-        if (sp < 20 && !calm) m.still += dt; else m.still = Math.max(0, m.still - dt * 2);
-        if (m.still > 2) {
-          m.vx += MR.rand(-180, 180);
-          m.vy = -MR.rand(200, 320);
-          m.still = 0;
+      const L = G.level;
+      if (L.mode === 'survival') {
+        updateSurvival(dt);
+      } else {
+        const f = L.finish;
+        let left = 0;
+        const cz = L.calm || [];
+        for (let i = 0; i < G.marbles.length; i++) {
+          const m = G.marbles[i];
+          if (m.finished) continue;
+          if (m.y > f.y && m.x > f.box.x0 && m.x < f.box.x1) { finish(m); continue; }
+          left++;
+          // bille coincée : elle ne s'est pas éloignée de plus de 45 unités depuis 5 s (attendre dans un sas est normal)
+          let calm = false;
+          for (let k = 0; k < cz.length; k++) if (inBox(m, cz[k])) { calm = true; break; }
+          if (calm || m.held || (m.x - m.ax) * (m.x - m.ax) + (m.y - m.ay) * (m.y - m.ay) > 45 * 45) { m.ax = m.x; m.ay = m.y; m.at = G.raceTime; }
+          else if (G.raceTime - m.at > STUCK_T) { eliminate(m, 0); left--; }
         }
+        updateHolds();
+        if (left <= 0) endRace();
       }
-      if (!left) endRace();
-      else if (G.raceTime > RACE_LIMIT) {
+      if (G.state === 'racing' && G.raceTime > (L.timeLimit || RACE_LIMIT)) {
         G.marbles.forEach(function (m) { if (!m.finished) { m.finished = true; m.dnf = true; m.rank = 0; } });
         endRace();
       }
@@ -250,21 +385,51 @@
   }
 
   // avancement d'une bille sur le parcours : la hauteur par défaut, ou la fonction du niveau
-  function prog(m) { return G.level.progress ? G.level.progress(m) : m.y; }
+  // Parcours en ligne brisée (L.path) : chaque bille suit son tronçon, sans sauter vers une rampe voisine.
+  function pathProg(L, m) {
+    const P = L.path, cum = L._cum || (L._cum = buildCum(P));
+    const w = m.wp || 0;
+    let best = w, bd = Infinity, bu = 0;
+    for (let i = Math.max(0, w - 1); i <= Math.min(P.length - 2, w + 3); i++) {
+      const ax = P[i][0], ay = P[i][1], bx = P[i + 1][0], by = P[i + 1][1];
+      const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
+      let u = ((m.x - ax) * dx + (m.y - ay) * dy) / l2;
+      u = u < 0 ? 0 : u > 1 ? 1 : u;
+      const ex = ax + dx * u - m.x, ey = ay + dy * u - m.y, d = ex * ex + ey * ey;
+      if (d < bd) { bd = d; best = i; bu = u; }
+    }
+    m.wp = best;
+    return cum[best] + bu * (cum[best + 1] - cum[best]);
+  }
+  function buildCum(P) {
+    const c = [0];
+    for (let i = 1; i < P.length; i++) c.push(c[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+    return c;
+  }
+  function prog(m) {
+    const L = G.level;
+    if (L.path) return pathProg(L, m);
+    return L.progress ? L.progress(m) : m.y;
+  }
   G.progressVal = prog;
   function computeRanking() {
     const r = G.ranking = G.marbles.slice();
-    r.forEach(function (m) { m.pv = prog(m); });
+    r.forEach(function (m) { if (!m.out) m.pv = prog(m); });
+    // groupes : arrivées (par place) → encore en piste → éliminées classées (niveau 4, par place) → éliminées sans place
+    const grp = function (m) { return m.finished && !m.dnf ? (m.out ? 2 : 0) : m.dnf ? 3 : 1; };
     r.sort(function (a, b) {
-      if (a.finished && !a.dnf && b.finished && !b.dnf) return a.rank - b.rank;
-      if (a.finished && !a.dnf) return -1;
-      if (b.finished && !b.dnf) return 1;
+      const ga = grp(a), gb = grp(b);
+      if (ga !== gb) return ga - gb;
+      if (ga === 0 || ga === 2) return a.rank - b.rank;
+      if (ga === 3) return (b.elimAt || 0) - (a.elimAt || 0) || b.pv - a.pv;
       return b.pv - a.pv;
     });
     for (let i = 0; i < r.length; i++) r[i].pos = i + 1;
   }
   G.progress = function (m) {
-    return MR.clamp(prog(m) / (G.level.progressMax || G.level.finish.y) * 100, 0, 99);
+    const L = G.level;
+    const max = L.path ? (L._cum || (L._cum = buildCum(L.path)))[L.path.length - 1] : (L.progressMax || L.finish.y);
+    return MR.clamp((m.pv != null ? m.pv : prog(m)) / max * 100, 0, 99);
   };
 
   /* ---------------- sons d'impact ---------------- */
@@ -294,7 +459,11 @@
       }
       if (e.kind === 'bumper') {
         MR.Audio.bumper(pan);
-        MR.FX.burst(G.fx, e.obj.x, e.obj.y, [255, 62, 165], 6);
+        MR.FX.burst(G.fx, e.obj.x, e.obj.y, e.obj.fw ? MR.pick([[255, 207, 74], [63, 240, 255], [255, 62, 165], [120, 255, 140]]) : [255, 62, 165], e.obj.fw ? 22 : 6);
+      } else if (e.kind === 'tramp') {
+        MR.Audio.bumper(pan);
+        MR.FX.burst(G.fx, m.x, m.y + m.r, [63, 240, 255], 8);
+        continue;
       }
       MR.Audio.hit(m.cfg.sound, MR.clamp((e.s - 50) / 650, 0.05, 1) * att, pan);
     }
@@ -306,6 +475,9 @@
     for (let i = 0; i < W.circles.length; i++) if (W.circles[i].flash > 0) W.circles[i].flash = Math.max(0, W.circles[i].flash - k);
     for (let i = 0; i < W.arms.length; i++) if (W.arms[i].flash > 0) W.arms[i].flash = Math.max(0, W.arms[i].flash - k);
     for (let i = 0; i < W.boosts.length; i++) W.boosts[i].hot *= Math.exp(-dt * 6);
+    for (let i = 0; i < W.segs.length; i++) if (W.segs[i].flash > 0) W.segs[i].flash = Math.max(0, W.segs[i].flash - k);
+    for (let i = 0; i < W.sliders.length; i++) if (W.sliders[i].flash > 0) W.sliders[i].flash = Math.max(0, W.sliders[i].flash - dt);
+    for (let i = 0; i < W.rings.length; i++) if (W.rings[i].pulse > 0) W.rings[i].pulse = Math.max(0, W.rings[i].pulse - dt * 2.4);
   }
 
   /* ---------------- caméra ---------------- */
@@ -313,6 +485,14 @@
     const L = G.level, vw = MR.Render.vw - MR.Render.insetTarget(), vh = MR.Render.vh, mode = G.settings.camera;
     if (mode === 'overview' && !G.followId) {
       return { x: L.W / 2, y: L.H / 2, s: Math.min(vw / L.W, vh / L.H) * 0.96 };
+    }
+    // niveau 4 : la caméra reste au centre des cercles et recule à chaque cercle brisé
+    if (L.mode === 'survival' && !G.followId) {
+      const rg = G.world.rings[G.world.ringIdx];
+      let R = rg ? rg.R : L.ringR0;
+      if (G.state === 'ready' || G.state === 'countdown') R = Math.min(L.outerR, L.ringR0 * 1.9);
+      const sv = Math.min(vw, vh) / (2 * (R + 80)) * (G.settings.zoom || 1);
+      return { x: L.center.x, y: L.center.y, s: Math.min(sv, Math.min(vw, vh) / 300) };
     }
     // cadrage de suivi : chaque niveau peut fixer la taille de la zone visible (en unités du monde)
     const cam = L.camera || {};
@@ -379,6 +559,8 @@
     if (i < 0) return;
     c.me = !!G.roster[i].me;
     G.roster[i] = c;
+    if (G.roster[i].name !== c.name) MR.Prog.onRename();
+    G.roster[i] = c;
     G.marbles.forEach(function (m) { if (m.id === c.id) { m.cfg = c; refreshLook(m); } });
     rosterChanged(false);
   };
@@ -406,9 +588,17 @@
     if (!n) return;
     const c = G.roster.find(function (r) { return r.id === id; });
     if (!c) return;
+    if (c.name !== n) renamed = true;
     c.name = n;
     saveRoster();
     MR.UI.boardDirty = true;
+  };
+  // fin de la saisie d'un nom : compte pour le succès « Renommer une bille »
+  let renamed = false;
+  G.commitRename = function (force) {
+    if (!renamed && !force) return;
+    renamed = false;
+    MR.Prog.onRename();
   };
   G.setCount = function (n) {
     n = MR.clamp(Math.round(n) || 1, 1, MR.MAX_MARBLES);
@@ -465,7 +655,7 @@
       if (n >= 12) acc = 0;
       if (G.state === 'racing') G.raceTime += dt;
       stateUpdate(dt, dtR);
-      for (let i = 0; i < G.marbles.length; i++) MR.FX.trailTick(G.fx, G.marbles[i], dt, G.time);
+      for (let i = 0; i < G.marbles.length; i++) if (!G.marbles[i].out) MR.FX.trailTick(G.fx, G.marbles[i], dt, G.time);
       G.fx.update(dt);
       decay(dt);
       handleEvents();
@@ -484,27 +674,36 @@
     G.reset(false, false);
     go();
     const steps = Math.round(seconds / FIXED);
+    const holds = [];
     for (let s = 0; s < steps; s++) {
       for (let i = 0; i < SUB; i++) MR.Physics.step(G.world, FIXED / SUB);
       G.raceTime += FIXED;
+      if (s % 4 === 0) computeRanking();
       stateUpdate(FIXED, FIXED);
+      if (G.debugStep) G.debugStep(G.raceTime);
+      G.world.sliders.forEach(function (sl, k) { if (sl.hold && sl.hold.open && holds[k] == null) holds[k] = +G.raceTime.toFixed(1); });
       G.world.events.length = 0;
       if (G.state !== 'racing') break;
     }
     computeRanking();
     G.simulating = false;
+    const done = G.marbles.filter(function (m) { return m.finished && !m.dnf && !m.out; });
     return {
       time: +G.raceTime.toFixed(2),
       finished: G.marbles.filter(function (m) { return m.finished && !m.dnf; }).length,
       total: G.marbles.length,
-      first: G.ranking[0] && G.ranking[0].finished ? +G.ranking[0].time.toFixed(2) : null,
-      last: G.ranking.length && G.ranking[G.ranking.length - 1].finished ? +G.ranking[G.ranking.length - 1].time.toFixed(2) : null,
+      first: done.length ? +Math.min.apply(null, done.map(function (m) { return m.time; })).toFixed(2) : null,
+      last: done.length ? +Math.max.apply(null, done.map(function (m) { return m.time; })).toFixed(2) : null,
+      out: G.marbles.filter(function (m) { return m.out && m.dnf; }).map(function (m) { return [Math.round(m.x), Math.round(m.y), +m.elimAt.toFixed(1)]; }),
+      holds: holds,
       stuck: G.marbles.filter(function (m) { return !m.finished; }).map(function (m) { return [Math.round(m.x), Math.round(m.y)]; })
     };
   };
 
   function init() {
     loadSettings();
+    MR.Prog.load();
+    MR.Account.load();
     MR.Cards.load();
     loadRoster();
     G.fx = new MR.FX.System();
@@ -519,13 +718,15 @@
     MR.UI.init(G);
     MR.Packs.init();
     MR.Settings.init(G);
+    MR.Profile.init(G);
     MR.UI.syncControls();
     G.reset(false, true);
     MR.MarbleGL.warm();
     MR.Sync.init();
+    MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : les paquets de cartes ! Bouton « Cartes » en haut à droite'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveaux d’XP, quêtes, succès, paquet ultra et niveau 4 !'); }, 900);
     }
 
     const unlock = function () {
@@ -545,6 +746,7 @@
       let best = null, bd = Infinity;
       const lim = 16 / MR.Render.cam.s;
       G.marbles.forEach(function (m) {
+        if (m.out) return;
         const d = Math.hypot(m.x - p.x, m.y - p.y) - m.r;
         if (d < lim && d < bd) { bd = d; best = m; }
       });
