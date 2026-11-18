@@ -1,5 +1,11 @@
 # MagicRace — journal des versions
 
+## 0.2.1 — 19 novembre 2026
+- 10 succès de runs : faire 1, 5, 15, 50, 100, 250, 500, 1000, 2000 et 5000 runs (de 200 à 16 000 XP). Les runs terminées s'affichent aussi dans les stats.
+- 4 nouvelles couleurs communes : Framboise, Pistache, Ocre et Bleuet.
+- Nouvelle bille peu commune « Pépite » : une pépite d'or brut qui scintille.
+- 106 cartes au total.
+
 ## 0.2.0 — 18 novembre 2026
 Progression, comptes, mode run et deux niveaux refaits, plus un nouveau.
 

@@ -38,6 +38,7 @@
     { id: 'menthe',     rarity: 'uncommon',  name: 'Menthe',           accent: '#5fe3b0', blurb: 'Bonbon à la menthe tourbillon' },
     { id: 'sable',      rarity: 'uncommon',  name: 'Sable',            accent: '#e8c98f', blurb: 'Dunes de la plage disco' },
     { id: 'lavande',    rarity: 'uncommon',  name: 'Lavande',          accent: '#b49cff', blurb: 'Champ de lavande en fleurs' },
+    { id: 'pepite',     rarity: 'uncommon',  name: 'Pépite',           accent: '#ffc63a', blurb: 'Une pépite d’or brut qui brille' },
     // rares
     { id: 'chrome',     rarity: 'rare',      name: 'Chrome',           accent: '#dfe6f2', blurb: 'Miroir poli, néons dans le reflet' },
     { id: 'damier',     rarity: 'rare',      name: 'Damier',           accent: '#f2f2f2', blurb: 'Le drapeau de l’arrivée' },
@@ -94,7 +95,8 @@
   MR.EXTRA_COLORS = [
     { c: '#e34234', n: 'Vermillon' }, { c: '#ff8c69', n: 'Saumon' }, { c: '#a39b5a', n: 'Kaki' },
     { c: '#f3e5c0', n: 'Crémeux' }, { c: '#c9a86a', n: 'Soja' }, { c: '#22d3c5', n: 'Turquoise' },
-    { c: '#8e3b73', n: 'Prune' }, { c: '#8ecbff', n: 'Ciel' }
+    { c: '#8e3b73', n: 'Prune' }, { c: '#8ecbff', n: 'Ciel' },
+    { c: '#e0245e', n: 'Framboise' }, { c: '#93c572', n: 'Pistache' }, { c: '#cc7a22', n: 'Ocre' }, { c: '#6c8cf0', n: 'Bleuet' }
   ];
 
   // Effets : « aucun » est toujours libre, le reste se gagne en cartes (rareté indiquée)

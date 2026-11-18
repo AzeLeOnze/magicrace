@@ -309,7 +309,10 @@
       t.pts += r.pts; t.sum += r.pos; t.best = Math.min(t.best, r.pos);
       t.per[R.races.length - 1] = r.pts;
     });
-    if (R.idx >= R.levels.length - 1) R.done = true;
+    if (R.idx >= R.levels.length - 1) {
+      R.done = true;
+      MR.Prog.onRunEnd();
+    }
   }
   G.runStandings = function () {
     if (!G.run) return [];
@@ -785,7 +788,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveaux d’XP, quêtes, succès, paquet ultra et niveau 4 !'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : succès de runs, 4 couleurs et la bille Pépite !'); }, 900);
     }
 
     const unlock = function () {

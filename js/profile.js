@@ -234,7 +234,7 @@
       return best ? esc(best) + ' <small>(' + map[best] + ')</small>' : '—';
     };
     const tiles = [
-      ['Courses', fmt(s.races)], ['Victoires ★', fmt(s.top1)], ['Top 3 ★', fmt(s.top3)], ['Top 5 ★', fmt(s.top5)],
+      ['Courses', fmt(s.races)], ['Runs terminées', fmt(s.runs || 0)], ['Victoires ★', fmt(s.top1)], ['Top 3 ★', fmt(s.top3)], ['Top 5 ★', fmt(s.top5)],
       ['Paquets ouverts', fmt(s.packs) + ' <small>dont ' + s.premium + ' premium, ' + s.ultra + ' ultra</small>'],
       ['Paquets cachés trouvés', fmt(s.hidden)],
       ['Collection', MR.Cards.distinct() + ' / ' + MR.CARDS.length],

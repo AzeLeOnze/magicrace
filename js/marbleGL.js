@@ -856,6 +856,19 @@ void main(){
   return col;
 }`;
 
+  SKINS.pepite = SIG + `{
+  float lump = fbm(s * 2.5 + u_seed * 5.0);
+  vec3 v = voronoi(s * 4.0 + u_seed * 3.0);
+  vec3 col = mix(vec3(0.55, 0.36, 0.06), vec3(1.0, 0.82, 0.32), smoothstep(0.3, 0.75, lump));
+  col *= 0.75 + 0.35 * v.z;
+  col = mix(col, vec3(0.3, 0.18, 0.04), smoothstep(0.12, 0.0, v.y - v.x) * 0.6);
+  col *= 0.45 + 0.7 * diff;
+  col += vec3(1.0, 0.9, 0.6) * (spec * 1.4 + specW * 0.35) + vec3(1.0, 0.75, 0.3) * fres * 0.4;
+  vec3 gp = s * 14.0 + u_seed * 9.0; vec3 gc = floor(gp); float h = hash13(gc);
+  col += vec3(1.0, 0.95, 0.75) * step(0.9, h) * smoothstep(0.3, 0.05, length(fract(gp) - 0.5)) * (0.5 + 0.5 * sin(u_time * 2.0 + h * 40.0)) * 0.7;
+  return col;
+}`;
+
   /* ================= 0.2.0 : 9 rares ================= */
   SKINS.boise = SIG + `{
   vec3 q = s; q.x += 0.25 * fbm3(s * 2.0 + u_seed * 3.0);

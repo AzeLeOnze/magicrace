@@ -135,6 +135,9 @@
   [[1, 100], [5, 200], [15, 350], [50, 500], [100, 800], [250, 1100], [500, 1750], [1000, 2500], [2000, 4000], [5000, 8000]].forEach(function (a) {
     ach('races' + a[0], 'Courses', a[0] === 1 ? 'Faire une course' : 'Faire ' + a[0] + ' courses', a[1], null, a[0], function () { return S().races; });
   });
+  [[1, 200], [5, 400], [15, 600], [50, 1000], [100, 1600], [250, 2200], [500, 3250], [1000, 5000], [2000, 8000], [5000, 16000]].forEach(function (a) {
+    ach('runs' + a[0], 'Runs', a[0] === 1 ? 'Faire une run' : 'Faire ' + a[0] + ' runs', a[1], null, a[0], function () { return S().runs; });
+  });
   const TOPS = [['top1', 'Finir 1er', [[1, 200], [10, 1000], [50, 5000], [100, 10000]]],
     ['top3', 'Finir dans le top 3', [[1, 150], [10, 500], [50, 2000], [100, 8000]]],
     ['top5', 'Finir dans le top 5', [[1, 150], [10, 500], [50, 2000], [100, 8000]]]];
@@ -273,6 +276,11 @@
     save(true);
     P.addXP(P.PACK_XP[type] || 50, 'Paquet');
   };
+  // run terminée (main.js) : tous les niveaux enchaînés
+  P.onRunEnd = function () {
+    st.stats.runs++;
+    P.check();
+  };
   P.onSecret = function () { st.stats.hidden++; save(true); };
   P.onRename = function () {
     st.stats.renamed++;
@@ -315,7 +323,7 @@
 
   /* ---------------- sauvegarde ---------------- */
   function freshStats() {
-    return { races: 0, racesBig: 0, top1: 0, top3: 0, top5: 0, byLevel: {}, packs: 0, premium: 0, ultra: 0, hidden: 0, renamed: 0,
+    return { races: 0, runs: 0, racesBig: 0, top1: 0, top3: 0, top5: 0, byLevel: {}, packs: 0, premium: 0, ultra: 0, hidden: 0, renamed: 0,
       elim: 0, explosions: 0, time: 0, marbles: 0, fav: {}, winners: {}, quests: 0, daily: 0 };
   }
   function fresh() {
