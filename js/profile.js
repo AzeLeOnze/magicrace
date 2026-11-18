@@ -260,16 +260,27 @@
     let h = '';
     if (!acc) {
       h += '<section class="pr-sec"><h3>Créer ton compte</h3><p>Le compte n’est pas obligatoire, mais il faut en avoir un pour voir le classement des joueurs (trié par XP).</p>';
-      if (st === 'offline') h += '<p class="pr-warn">Ici (site ou fichier), il n’y a pas de serveur pour garder les comptes : le compte et le classement ne marchent que quand MagicRace est ouvert sur claude.ai. Ta progression, elle, reste bien enregistrée sur cet appareil.</p>';
+      if (st === 'offline') h += '<p class="pr-warn">' + offlineText() + '</p>';
       else if (st === 'checking') h += '<p class="hint">Connexion en cours…</p>';
       h += accountForm('Créer mon compte', '');
+      if (MR.Account.isFirebase()) {
+        h += '<p class="hint">Tu as déjà un compte relié à Google (sur un autre appareil) ?</p>' +
+          '<button class="btn google-btn" type="button" data-act="google">' + G_ICON + 'Se connecter avec Google</button><p class="g-msg acc-msg" aria-live="polite"></p>';
+      }
       h += '</section>';
       body.innerHTML = h;
       bindForm(body);
       return;
     }
     h += '<section class="pr-sec"><h3>Classement des joueurs <small>par XP</small></h3><div id="boardBox">' + boardHtml() + '</div></section>';
-    h += '<section class="pr-sec"><h3>Mon compte</h3><p>Pseudo : <b>' + esc(acc.pseudo) + '</b></p>' + accountForm('Changer de pseudo', acc.pseudo) +
+    let gh = '';
+    if (MR.Account.isFirebase()) {
+      gh = MR.Account.isGoogle()
+        ? '<p class="g-ok">✔ Compte relié à Google : tu le retrouves sur PC et téléphone.</p><button class="btn" type="button" data-act="signout">Se déconnecter de cet appareil</button>'
+        : '<p class="hint">Relie ton compte à Google pour le retrouver (avec ta progression) sur tous tes appareils.</p><button class="btn google-btn" type="button" data-act="google">' + G_ICON + 'Relier à Google</button>';
+      gh += '<p class="g-msg acc-msg" aria-live="polite"></p>';
+    }
+    h += '<section class="pr-sec"><h3>Mon compte</h3><p>Pseudo : <b>' + esc(acc.pseudo) + '</b></p>' + accountForm('Changer de pseudo', acc.pseudo) + gh +
       '<button class="btn danger" type="button" data-act="delacc">' + (deleteArmed ? 'Confirmer : supprimer mon compte' : 'Supprimer mon compte') + '</button>' +
       '<p class="hint">Supprimer le compte retire ta ligne du classement. Ta progression (niveau, cartes) reste.</p></section>';
     body.innerHTML = h;
@@ -292,7 +303,8 @@
   }
   function updBoard() { const b = document.getElementById('boardBox'); if (b) b.innerHTML = boardHtml(); }
   function boardHtml() {
-    if (MR.Account.status === 'offline' || boardState === 'offline') return '<p class="pr-warn">Le classement en ligne marche dans la version claude.ai de MagicRace. Ton compte est gardé ici et s’affichera là-bas.</p>';
+    if (MR.Account.status === 'offline' || boardState === 'offline') return '<p class="pr-warn">' + offlineText() + '</p>';
+    if (boardState === 'error' && MR.Account.isFirebase()) return '<p class="pr-warn">Classement injoignable (connexion internet, ou règles Firestore pas encore en place).</p>';
     if (boardState === 'error') return '<p class="pr-warn">Classement injoignable pour le moment.</p>';
     if (!boardRows) return '<p class="hint">' + (boardState === 'slow' ? 'Le classement met du temps à répondre…' : 'Chargement du classement…') + '</p>';
     if (!boardRows.length) return '<p class="hint">Personne pour l’instant : gagne de l’XP pour apparaître ici.</p>';
@@ -305,6 +317,12 @@
     if (boardCache) h += '<p class="hint">Peut-être pas à jour : en attente du serveur…</p>';
     if (MR.Account.status === 'readonly') h += '<p class="pr-warn">Tu peux voir le classement mais pas y apparaître : demande au propriétaire de MagicRace l’accès « Contributeur ».</p>';
     return h;
+  }
+  const G_ICON = '<svg class="g-ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.5z"/><path fill="#34A853" d="M12 23.5c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3A11.5 11.5 0 0 0 12 23.5z"/><path fill="#FBBC05" d="M5.6 14.2a6.9 6.9 0 0 1 0-4.4v-3H1.8a11.5 11.5 0 0 0 0 10.4l3.8-3z"/><path fill="#EA4335" d="M12 5.1c1.7 0 3.2.6 4.4 1.7l3.3-3.3A11.5 11.5 0 0 0 1.8 6.8l3.8 3C6.5 7.1 9 5.1 12 5.1z"/></svg>';
+  function offlineText() {
+    return MR.FB && MR.FB.enabled
+      ? 'Le serveur des comptes est injoignable pour le moment (pas de connexion internet ?). Ta progression reste enregistrée sur cet appareil.'
+      : 'Ici (fichier ou autre site), il n’y a pas de serveur pour les comptes : ils marchent sur azeleonze.github.io/magicrace et dans la version claude.ai. Ta progression reste enregistrée sur cet appareil.';
   }
   function accountForm(label, val) {
     return '<form class="acc-form" autocomplete="off"><input class="txt" type="text" name="pseudo" maxlength="16" minlength="3" spellcheck="false" placeholder="Ton pseudo (3 à 16 caractères)" value="' + esc(val) + '" aria-label="Pseudo">' +
@@ -321,6 +339,24 @@
       msg.textContent = r.msg;
       msg.classList.toggle('bad', !r.ok);
       if (r.ok) { MR.Audio.questDone(); boardState = 'idle'; setTimeout(render, 700); }
+    });
+    root.querySelectorAll('[data-act="google"],[data-act="signout"]').forEach(function (b) {
+      b.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        const msg = root.querySelector('.g-msg');
+        b.disabled = true;
+        if (b.dataset.act === 'signout') {
+          await MR.Account.signOut();
+          MR.UI.toast('Déconnecté de cet appareil');
+          boardState = 'idle'; render();
+          return;
+        }
+        if (msg) { msg.textContent = 'Connexion à Google…'; msg.classList.remove('bad'); }
+        const r = await MR.Account.google();
+        b.disabled = false;
+        if (msg) { msg.textContent = r.msg; msg.classList.toggle('bad', !r.ok); }
+        if (r.ok) { MR.Audio.questDone(); boardState = 'idle'; setTimeout(render, 900); }
+      });
     });
   }
 

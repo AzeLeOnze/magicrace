@@ -48,6 +48,24 @@
     }
   };
 
+  // site public : sauvegarde du compte dans Firebase (saves/<uid>), même fusion que dans claude.ai
+  S.attach = async function (r) {
+    try {
+      const snap = await timeout(r.get(), 10000);
+      if (!snap) return false;
+      ref = r;
+      S.connected = true;
+      let remote = null;
+      if (snap.exists) {
+        remote = JSON.parse(JSON.stringify(snap.data() || {}));
+        MR.Game.importSave(remote);
+      }
+      if (!remote || canon(MR.Game.exportSave()) !== canon(remote)) S.changed(true);
+      return true;
+    } catch (e) { return false; }
+  };
+  S.detach = function () { ref = null; S.connected = false; clearTimeout(timer); };
+
   S.changed = function (now) {
     if (!ref) return;
     clearTimeout(timer);
@@ -59,7 +77,7 @@
     if (writing) { again = true; return; }
     writing = true;
     try {
-      await ref.set(MR.Game.exportSave());
+      await ref.set(JSON.parse(JSON.stringify(MR.Game.exportSave())));
       retried = false;
     } catch (e) {
       const code = e && e.code;
