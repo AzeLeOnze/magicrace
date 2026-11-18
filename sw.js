@@ -1,5 +1,5 @@
-// MagicRace 0.2.0 : cache hors ligne. Fabrication 20261118-220659 (change à chaque fois, pour que les mises à jour arrivent).
-const VERSION = 'magicrace-20261118-220659';
+// MagicRace 0.2.0 : cache hors ligne. Fabrication 20261118-220710 (change à chaque fois, pour que les mises à jour arrivent).
+const VERSION = 'magicrace-20261118-220710';
 const FONTS = 'magicrace-fonts';
 const SHELL = [
   './',
