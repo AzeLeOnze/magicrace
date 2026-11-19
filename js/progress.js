@@ -232,7 +232,7 @@
       if (r <= 3) b.t3++;
       if (r <= 5) b.t5++;
       if (info.count > 1) { b.posSum += (r - 1) / (info.count - 1); b.posN++; }
-      if (info.time > 0 && info.mode !== 'survival' && (!b.best || info.time < b.best)) b.best = info.time;
+      if (info.time > 0 && info.mode !== 'survival' && info.mode !== 'arena' && (!b.best || info.time < b.best)) b.best = info.time;
     }
     if (big) {
       s.racesBig++;

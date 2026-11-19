@@ -23,7 +23,7 @@
     const w = {
       W: def.W, H: def.H, g: def.gravity, r: def.marbleR,
       segs: def.segs.map(prepSeg),
-      circles: def.circles.map(function (c) { return Object.assign({ flash: 0 }, c); }),
+      circles: def.circles.map(function (c) { return Object.assign({ flash: 0, r0: c.r }, c); }),
       arms: def.arms.map(function (a) { return Object.assign({ flash: 0 }, a); }),
       boosts: def.boosts.map(function (b) { return Object.assign({ hot: 0 }, b); }),
       zones: (def.zones || []).map(function (z) { return Object.assign({}, z, { hot: 0 }); }),
@@ -252,7 +252,9 @@
           const s = w.segs[k];
           if (x1 < s.minx || x0 > s.maxx || y1 < s.miny || y0 > s.maxy) continue;
           // trampoline : renvoie la bille avec une poussée supplémentaire
-          if (capsule(w, m, s.ax, s.ay, s.bx, s.by, s.t, s.e, s, s.kind, 0, 0, 0) && s.kick && HIT.vn < -40) {
+          const hitSeg = capsule(w, m, s.ax, s.ay, s.bx, s.by, s.t, s.e, s, s.kind, 0, 0, 0);
+          if (hitSeg && s.kill) { m.doom = true; s.flash = 1; }
+          else if (hitSeg && s.kick && HIT.vn < -40) {
             m.vx += HIT.nx * s.kick; m.vy += HIT.ny * s.kick;
             s.flash = 1;
             w.events.push({ m: m, s: 400, kind: 'tramp', obj: s });
@@ -269,7 +271,8 @@
           m.x = c.x + nx * R; m.y = c.y + ny * R;
           const om = c.omega || 0;
           const vn = contact(w, m, nx, ny, c.e, -om * ny * c.r, om * nx * c.r, c, c.kind, om ? 0.02 : 0);
-          if (c.kick && vn < -10) { m.vx += nx * c.kick; m.vy += ny * c.kick; c.flash = 1; }
+          if (c.kill) { m.doom = true; c.flash = 1; }
+          else if (c.kick && vn < -10) { m.vx += nx * c.kick; m.vy += ny * c.kick; c.flash = 1; }
         }
         for (k = 0; k < w.arms.length; k++) {
           const a = w.arms[k];

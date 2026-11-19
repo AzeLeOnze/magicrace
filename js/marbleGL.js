@@ -1158,6 +1158,59 @@ void main(){
   return col;
 }`;
 
+  /* ================= 0.2.3 ================= */
+  SKINS.fourrure = SIG + `{
+  vec3 q = s * 3.0 + u_seed * 4.0;
+  vec3 dirFlow = normalize(vec3(fbm3(q) - 0.5, fbm3(q + 7.0) - 0.5, 0.3));
+  float strands = noise(vec3(dot(s, dirFlow) * 46.0, dot(s, cross(dirFlow, vec3(0.0, 0.0, 1.0))) * 6.0, u_seed * 9.0));
+  float patches = smoothstep(0.42, 0.62, fbm(s * 2.2 + u_seed * 3.0));
+  vec3 col = mix(vec3(0.8, 0.55, 0.32), vec3(0.42, 0.26, 0.15), patches);
+  col = mix(col, vec3(0.98, 0.9, 0.78), smoothstep(0.6, 0.8, fbm3(s * 3.5 + 20.0)) * 0.6);
+  col *= 0.7 + 0.5 * strands;
+  float fuzz = smoothstep(0.75, 1.0, r) * (0.5 + 0.5 * strands);
+  col *= 0.42 + 0.68 * diff;
+  col += col * fuzz * 0.6 + vec3(1.0, 0.9, 0.75) * fres * 0.25 + vec3(1.0) * specW * 0.06;
+  return col;
+}`;
+
+  SKINS.vhs = SIG + `{
+  vec2 q = s.xy;
+  vec3 col = vec3(0.07, 0.065, 0.08);
+  float label = step(abs(q.y + 0.05), 0.33) * step(abs(q.x), 0.82);
+  vec3 lab = mix(vec3(1.0, 0.95, 0.85), vec3(1.0, 0.45, 0.2), step(0.1, q.y + 0.05));
+  lab = mix(lab, vec3(0.2, 0.4, 0.95), step(q.y + 0.05, -0.12) * 0.9);
+  col = mix(col, lab, label);
+  vec2 hub = vec2(abs(q.x) - 0.38, q.y + 0.03);
+  float reel = smoothstep(0.17, 0.15, length(hub));
+  float ang = atan(hub.y, hub.x) + u_time * 2.0 * sign(q.x);
+  vec3 rc = vec3(0.12) + vec3(0.85) * step(0.5, fract(ang / TAU * 6.0)) * smoothstep(0.06, 0.08, length(hub)) * 0.4;
+  col = mix(col, rc, reel * label);
+  float track = step(0.93, fract(p.y * 2.0 - u_time * 0.35));
+  float jitter = (hash13(vec3(floor(p.y * 30.0), floor(u_time * 10.0), 2.0)) - 0.5) * track;
+  col = mix(col, vec3(0.9, 0.95, 1.0), track * 0.35 + abs(jitter) * 0.6);
+  col.r += 0.05 * sin(p.y * 160.0);
+  col *= 0.5 + 0.55 * diff;
+  col += vec3(1.0) * (spec * 1.0 + specW * 0.15) + vec3(1.0, 0.5, 0.3) * fres * 0.3;
+  return col;
+}`;
+
+  SKINS.ultrasmoke = SIG + `{
+  float t = u_time * 0.25;
+  vec3 q = s * 1.6 + u_seed * 3.0;
+  vec3 w1 = vec3(fbm(q + vec3(0.0, t, 0.0)), fbm(q + vec3(5.2, -t, 1.3)), fbm(q + vec3(1.7, 9.2, t)));
+  float d = fbm(q + 2.4 * w1 + vec3(t * 0.6, 0.0, 0.0));
+  float wisp = smoothstep(0.35, 0.75, d);
+  vec3 c1 = pal(d * 1.3 + t * 0.4 + u_seed, vec3(0.5, 0.35, 0.65), vec3(0.45, 0.4, 0.4), vec3(1.0), vec3(0.75, 0.2, 0.55));
+  vec3 col = mix(vec3(0.03, 0.02, 0.06), c1, wisp);
+  float core = pow(max(0.0, 1.0 - r), 1.6);
+  col += c1 * core * wisp * 0.9;
+  float glint = pow(smoothstep(0.7, 0.95, fbm3(q * 3.0 + w1 * 2.0 + t)), 3.0);
+  col += vec3(1.0, 0.85, 1.0) * glint * 0.9;
+  col *= 0.6 + 0.5 * diff;
+  col += vec3(1.0) * spec * 1.0 + c1 * fres * 0.8 + vec3(1.0) * glassArc(p) * 0.3;
+  return col;
+}`;
+
   const G = { ok: false, canvas: null, ATLAS_W: ATLAS_W, ATLAS_H: ATLAS_H, MAIN_H: MAIN_H, ids: Object.keys(SKINS) };
   let gl = null, vsh = null;
   const progs = {};

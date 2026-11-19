@@ -29,6 +29,18 @@
     L.bumper = function (x, y, r, kick, fw) {
       L.circles.push({ x: x, y: y, r: r || 24, e: 0.75, kick: kick || 240, kind: 'bumper', fw: !!fw });
     };
+    // bord rebondissant rouge (triangles, barres) : renvoie la bille avec une poussée `kick`
+    L.sling = function (ax, ay, bx, by, kick, t) {
+      L.segs.push({ ax: ax, ay: ay, bx: bx, by: by, t: t || 8, e: 0.8, kind: 'sling', kick: kick || 380 });
+    };
+    // destructeur : lame électrique bleue, la bille qui la touche explose
+    L.killer = function (ax, ay, bx, by) {
+      L.segs.push({ ax: ax, ay: ay, bx: bx, by: by, t: 6, e: 0.3, kind: 'kill', kill: true });
+    };
+    // scie destructrice ronde (elle grossit pendant les prolongations)
+    L.saw = function (x, y, r) {
+      L.circles.push({ x: x, y: y, r: r, e: 0.4, kick: 0, kind: 'saw', kill: true });
+    };
     // trampoline : segment rebondissant qui renvoie la bille avec une poussée `kick`
     L.tramp = function (ax, ay, bx, by, kick) {
       L.segs.push({ ax: ax, ay: ay, bx: bx, by: by, t: 7, e: 0.6, kind: 'tramp', kick: kick || 300 });
@@ -559,6 +571,7 @@
       L.marbleR = r;
       L.theme = 'beach';
       L.mode = 'survival';
+      L.elim = true;
       L.noStuck = true;
       L.timeLimit = 900;
       L.beatKick = T.kick || 220;
@@ -579,10 +592,9 @@
       for (let k = 0; k < rings; k++) {
         const R = R0 + k * dR;
         const hue = (k * 360 / Math.max(6, Math.min(rings, 24)) + 300) % 360;
-        // vitesse de bord à peu près constante : le trou défile aussi vite sur les petits que sur les grands cercles
-        const v = (T.v || 240) * (0.75 + Math.random() * 0.5);
-        L.rings.push({ cx: cx, cy: cy, R: R, t: 5, gap: Math.max((r * 2.1 + 4) / R, T.gapA || 0.19), angle: Math.random() * MR.TAU,
-          omega: (Math.random() < 0.5 ? -1 : 1) * MR.clamp(v / R, T.wmin || 0.5, 2.2), e: 1, hue: hue, rgb: hsl(hue, 0.95, 0.6) });
+        // tous les trous partent vers le haut ; chaque cercle tourne 1,1× plus vite que le précédent (plafonné)
+        L.rings.push({ cx: cx, cy: cy, R: R, t: 5, gap: Math.max((r * 2.1 + 4) / R, T.gapA || 0.19), angle: -Math.PI / 2,
+          omega: Math.min((T.w0 || 0.45) * Math.pow(1.1, k), T.wmax || 3), e: 1, hue: hue, rgb: hsl(hue, 0.95, 0.6) });
       }
       // départ au milieu : grille hexagonale serrée dans le plus petit cercle
       L.spawnSlots = function (k) {
@@ -603,6 +615,88 @@
       L.sign('LE DERNIER EN VIE GAGNE', cx, cy + outer + 110, 26, '#ffcf4a');
       // pas de zone d'arrivée : la boîte sert aux confettis et à la caméra
       L.finish = { y: Infinity, none: true, box: { x0: cx - R0, x1: cx + R0, y0: cy - R0, y1: cy + R0 } };
+      return L;
+    }
+  });
+
+  /* ------------------------------------------------------------------ *
+   * Niveau 5 — Soleil Levant (0.2.3, d'après le schéma de l'auteur) : flipper éliminatoire au lever du soleil.
+   * Les billes tombent de l'enclos dans la salle (bumpers, picots, roues, triangles), ressortent par le bas sur le toit,
+   * remontent par les couloirs accélérés et retombent dans la salle. Les destructeurs bleus font exploser les billes ;
+   * la dernière en vie gagne. Coordonnées du schéma (553 × 873) × 3.
+   * ------------------------------------------------------------------ */
+  MR.registerLevel({
+    id: 'soleil-levant',
+    num: 5,
+    name: 'Soleil Levant',
+    build: function () {
+      const X = function (x) { return (x - 10) * 3; }, Y = function (y) { return (y - 8) * 3; };
+      const W = X(545), H = Y(865);
+      const L = Builder(W, H);
+      L.gravity = 1000;
+      L.marbleR = 15;
+      L.theme = 'sunrise';
+      L.mode = 'arena';
+      L.elim = true;
+      L.timeLimit = 600;
+      const T = MR.L5 || {};   // réglages de test
+      L.overtime = T.over || 90;
+      L.sawGrow = T.grow || 2.5;
+      const wall = function (x1, y1, x2, y2) { L.seg(X(x1), Y(y1), X(x2), Y(y2), { kind: 'wall', e: 0.35 }); };
+      const sling = function (x1, y1, x2, y2, k) { L.sling(X(x1), Y(y1), X(x2), Y(y2), k); };
+      const killer = function (x1, y1, x2, y2) { L.killer(X(x1), Y(y1), X(x2), Y(y2)); };
+
+      L.seg(0, 0, W, 0, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, 0, W, H, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, H, 0, H, { kind: 'frame', t: 10, e: 0.2 });
+      L.seg(0, H, 0, 0, { kind: 'frame', t: 10, e: 0.4 });
+
+      // enclos de départ (pointillés du schéma) et ses trappes
+      wall(190, 14, 190, 75); wall(322, 14, 322, 75);
+      L.door(X(190), Y(75), (X(322) - X(190)) / 2, 0, Math.PI / 2, 7);
+      L.door(X(322), Y(75), (X(322) - X(190)) / 2, Math.PI, Math.PI / 2, -7);
+      L.spawn = { x0: X(190) + 22, x1: X(322) - 22, y: Y(75) - 6 - 16, gap: 31 };
+      L.startView = { x: W / 2, y: 620 };
+
+      // la salle (murs verts)
+      wall(103, 148, 140, 112); wall(103, 148, 112, 620); wall(112, 620, 130, 635); wall(130, 635, 205, 575);
+      wall(403, 103, 438, 145); wall(438, 145, 443, 622); wall(443, 622, 417, 638); wall(417, 638, 345, 572);
+      // le toit sous la salle et les couloirs extérieurs
+      L.poly([[X(10), Y(748)], [X(58), Y(748)], [X(273), Y(595)], [X(495), Y(750)], [X(545), Y(750)]], { kind: 'wall', e: 0.3 });
+      wall(10, 163, 95, 8); wall(472, 8, 545, 190);
+      // couloirs accélérés (flèches jaunes) : les billes remontent tout en haut
+      L.zone(X(10), Y(110), X(100), Y(748), 0, -2700);
+      L.zone(X(446), Y(110), X(545), Y(750), 0, -2700);
+      // tout en haut, la poussée envoie les billes au-dessus de la salle, où elles retombent dedans
+      L.zone(X(10), Y(8), X(150), Y(118), T.side || 2600, -800);
+      L.zone(X(398), Y(8), X(545), Y(112), -(T.side || 2600), -800);
+      // petites poches du bas de la salle : elles renvoient les billes vers le haut
+      L.zone(X(118), Y(560), X(180), Y(632), 900, -2600);
+      L.zone(X(372), Y(560), X(437), Y(634), -900, -2600);
+
+      // bumpers ronds et picots
+      L.bumper(X(172), Y(133), 30, 240); L.bumper(X(250), Y(128), 58, 280); L.bumper(X(339), Y(128), 30, 240);
+      L.bumper(X(212), Y(190), 24, 220); L.bumper(X(298), Y(190), 24, 220);
+      [[205, 155], [257, 168], [300, 153], [162, 190], [355, 193], [255, 218], [203, 233], [303, 238]].forEach(function (q) { L.peg(X(q[0]), Y(q[1]), 11); });
+      // triangles rebondissants (rouges) avec un destructeur sur leur face du bas (bleu)
+      sling(103, 148, 133, 170, 420); killer(133, 170, 105, 198);
+      sling(438, 145, 413, 165, 420); killer(413, 165, 437, 195);
+      sling(108, 348, 175, 380, 480); killer(175, 380, 110, 415);
+      sling(438, 335, 372, 377, 480); killer(372, 377, 438, 410);
+      // coupes pièges : demi-cercle vert, lame bleue au fond
+      L.arc(X(172), Y(272), 46, 0, 180, 10, { kind: 'wall', e: 0.3 });
+      killer(158, 266, 186, 283);
+      L.arc(X(378), Y(272), 46, 0, 180, 10, { kind: 'wall', e: 0.3 });
+      killer(364, 283, 392, 266);
+      // deux roues qui tournent (violet)
+      L.rotor(X(200), Y(335), 105, 4, 1.5, 0.2, 14, 'wheel');
+      L.rotor(X(338), Y(333), 105, 4, -1.5, 0.6, 14, 'wheel');
+      // barres rebondissantes et scie destructrice au centre
+      sling(230, 381, 304, 383, 300);
+      sling(265, 413, 267, 460, 300); sling(267, 503, 269, 555, 300);
+      L.saw(X(266), Y(482), 38);
+      L.sign('LA DERNIÈRE BILLE EN VIE GAGNE', X(273), Y(800), 34, '#ffb347');
+      L.finish = { y: Infinity, none: true, box: { x0: X(103), x1: X(443), y0: Y(110), y1: Y(620) } };
       return L;
     }
   });

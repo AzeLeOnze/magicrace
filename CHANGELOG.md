@@ -1,5 +1,14 @@
 # MagicRace — journal des versions
 
+## 0.2.3 — 19 novembre 2026
+- Nouveau niveau 5 « Soleil Levant » (d'après le schéma de l'auteur), sur la plage au lever du soleil. C'est un éliminatoire, sans ligne d'arrivée :
+  - les billes tombent de l'enclos dans une salle de flipper : bumpers, picots, deux roues qui tournent, triangles et barres qui font rebondir fort ;
+  - elles ressortent par le bas sur un toit, remontent par les couloirs accélérés et retombent dans la salle ;
+  - les destructeurs bleus (lames électriques hérissées et scie ronde au centre) font exploser les billes, et la dernière en vie gagne ;
+  - après 90 secondes, la scie grossit peu à peu.
+- Niveau 4 : les trous de tous les cercles partent vers le haut, et chaque cercle tourne 1,1 fois plus vite que le précédent (avec une vitesse maximale). Le trou d'un cercle ne saute plus quand le cercle d'avant se brise.
+- Nouvelles billes : 3 couleurs communes (Cerise, Olive, Glacier), « Fourrure » (rare), « VHS » (épique) et « Ultra smoke » (légendaire). 133 cartes au total.
+
 ## 0.2.2 — 19 novembre 2026
 - Finir une run rapporte de l'XP selon la place de ta bille ★ au classement final : 1000 XP (1re), 600 (2e), 450 (3e), 325 (4e-5e), 250 (6e-10e), 150 (11e et plus).
 - Nouvelles chances des paquets normaux : Commune 49 %, Peu commune 32 %, Rare 13,5 %, Épique 3,3 %, Légendaire 1,2 %. Un paquet normal sur 100 cache un paquet ultra (1 %), y compris les paquets gagnés.

@@ -249,7 +249,7 @@
 
   UI.banner = function (name, survival) {
     const el = $('#banner');
-    el.innerHTML = '<span class="crown" aria-hidden="true">♛</span><span class="bn">' + MR.esc(name) + (survival ? ' survit à tous les cercles !' : ' remporte la course !') + '</span>';
+    el.innerHTML = '<span class="crown" aria-hidden="true">♛</span><span class="bn">' + MR.esc(name) + (survival ? ' est la dernière bille en vie !' : ' remporte la course !') + '</span>';
     el.hidden = false;
     clearTimeout(bannerTimer);
     bannerTimer = setTimeout(UI.hideBanner, 4200);
@@ -270,7 +270,7 @@
     $('#hudHint').hidden = bs === 'hidden' || window.innerWidth < 640;
     if (bs === 'hidden') return;
     const max = bs === '5' ? 5 : bs === '10' ? 10 : bs === 'all' ? rk.length : (window.innerWidth < 640 ? 5 : window.innerHeight < 760 ? 6 : 10);
-    const surv = G.level.mode === 'survival';
+    const surv = !!G.level.elim;
     let html = '';
     for (let i = 0; i < Math.min(rk.length, max); i++) {
       const m = rk[i];
@@ -632,7 +632,7 @@
   UI.showResults = function () {
     const rk = G.ranking, GL = MR.MarbleGL;
     const done = rk.filter(function (m) { return m.finished && !m.dnf; });
-    const winner = done[0], surv = G.level.mode === 'survival';
+    const winner = done[0], surv = !!G.level.elim;
     const boom = rk.filter(function (m) { return m.out && m.dnf; }).length;
     $('#resTitle').textContent = 'Classement';
     $('#resSub').textContent = G.levelDef.name + ' · ' + rk.length + ' bille' + (rk.length > 1 ? 's' : '') +

@@ -222,10 +222,10 @@
     MR.FX.burst(G.fx, m.x, m.y, m.rgb, m.rank === 1 ? 40 : 18);
     award(m);
     if (m.rank === 1) {
-      MR.UI.banner(m.cfg.name, G.level.mode === 'survival');
+      MR.UI.banner(m.cfg.name, !!G.level.elim);
       MR.Audio.fanfare();
       const b = G.level.finish.box;
-      MR.FX.confetti(G.fx, b.x0 + 60, b.x1 - 60, G.level.mode === 'survival' ? m.y : b.y1 - 40, 140);
+      MR.FX.confetti(G.fx, b.x0 + 60, b.x1 - 60, G.level.elim ? m.y : b.y1 - 40, 140);
     }
     MR.UI.boardDirty = true;
   }
@@ -376,8 +376,6 @@
           rg.alive = false;
           W.ringIdx++;
           G.lastEscape = G.raceTime;
-          // le trou du cercle suivant s'ouvre un instant plus tard (on voit chaque cercle se briser)
-          if (W.rings[W.ringIdx]) W.rings[W.ringIdx].openAt = W.t + (L.openDelay || 0.35);
           if (!G.simulating) {
             MR.FX.shatterRing(G.fx, rg.cx, rg.cy, rg.R, rg.rgb, rg.angle);
             MR.Audio.ringBreak(0);
@@ -394,8 +392,6 @@
     }
     rg = W.rings[W.ringIdx] || null;
     if (!rg) return;
-    // personne ne sort depuis 4 s : le trou s'élargit peu à peu (jusqu'à 2,2 fois)
-    if (G.raceTime - G.lastEscape > 4) rg.gap = Math.min(rg.gap0 * 2.2, rg.gap + rg.gap0 * 0.15 * dt);
     // la vitesse des billes suit la taille du cercle actif (les grands cercles ne traînent pas)
     W.constSpeed = Math.max(L.speed || 520, rg.R * (L.speedPerR || 1.3));
     // chaque temps de la musique fait pulser les cercles
@@ -404,6 +400,31 @@
     if (bn !== G.beatN) {
       G.beatN = bn;
       for (let k = W.ringIdx; k < W.rings.length; k++) W.rings[k].pulse = 1;
+    }
+  }
+
+  // niveau 5 : pas d'arrivée ; une bille qui touche un destructeur (ou reste coincée) explose, la dernière en vie gagne
+  function updateArena(dt) {
+    const L = G.level, W = G.world;
+    let alive = G.marbles.filter(function (m) { return !m.out; });
+    for (let i = 0; i < alive.length; i++) {
+      const m = alive[i];
+      if (m.doom) { eliminate(m, G.marbles.filter(function (q) { return !q.out; }).length); continue; }
+      if (m.held || (m.x - m.ax) * (m.x - m.ax) + (m.y - m.ay) * (m.y - m.ay) > 45 * 45) { m.ax = m.x; m.ay = m.y; m.at = G.raceTime; }
+      else if (G.raceTime - m.at > STUCK_T) eliminate(m, G.marbles.filter(function (q) { return !q.out; }).length);
+    }
+    alive = G.marbles.filter(function (m) { return !m.out; });
+    if (alive.length <= 1) {
+      if (alive[0]) finish(alive[0], 1);
+      endRace();
+      return;
+    }
+    // prolongations : les scies grossissent peu à peu
+    if (G.raceTime > (L.overtime || 90)) {
+      for (let k = 0; k < W.circles.length; k++) {
+        const c = W.circles[k];
+        if (c.kill) c.r = Math.min(c.r0 * (L.sawMax || 2.6), c.r + (L.sawGrow || 2.5) * dt);
+      }
     }
   }
 
@@ -421,6 +442,8 @@
       const L = G.level;
       if (L.mode === 'survival') {
         updateSurvival(dt);
+      } else if (L.mode === 'arena') {
+        updateArena(dt);
       } else {
         const f = L.finish;
         let left = 0;
@@ -569,6 +592,22 @@
       return { x: L.W / 2, y: L.H / 2, s: Math.min(vw / L.W, vh / L.H) * 0.96 };
     }
     // niveau 4 : la caméra reste au centre des cercles et recule à chaque cercle brisé
+    if (L.mode === 'arena' && !G.followId) {
+      const s = Math.max(Math.min(vw / (L.W * 1.02), vh / 1250), Math.min(vw, vh) / 950) * (G.settings.zoom || 1);
+      let x = L.W / 2, y = L.startView.y;
+      if (G.state === 'racing' || G.state === 'finished') {
+        const live = G.marbles.filter(function (m) { return !m.out; });
+        if (live.length) {
+          x = 0; y = 0;
+          live.forEach(function (m) { x += m.x; y += m.y; });
+          x /= live.length; y /= live.length;
+        }
+      }
+      const hw = vw / 2 / s, hh = vh / 2 / s;
+      x = hw * 2 >= L.W ? L.W / 2 : MR.clamp(x, hw, L.W - hw);
+      y = hh * 2 >= L.H ? L.H / 2 : MR.clamp(y, hh, L.H - hh);
+      return { x: x, y: y, s: s };
+    }
     if (L.mode === 'survival' && !G.followId) {
       const rg = G.world.rings[G.world.ringIdx];
       let R = rg ? rg.R : L.ringR0;
@@ -809,7 +848,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : 20 billes, bruit piano, XP de run et navigation libre !'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveau 5 « Soleil Levant », destructeurs et 6 nouvelles billes !'); }, 900);
     }
 
     const unlock = function () {
