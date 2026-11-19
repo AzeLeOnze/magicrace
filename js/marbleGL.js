@@ -1173,26 +1173,130 @@ void main(){
   return col;
 }`;
 
-  SKINS.vhs = SIG + `{
-  vec2 q = s.xy;
-  vec3 col = vec3(0.07, 0.065, 0.08);
-  float label = step(abs(q.y + 0.05), 0.33) * step(abs(q.x), 0.82);
-  vec3 lab = mix(vec3(1.0, 0.95, 0.85), vec3(1.0, 0.45, 0.2), step(0.1, q.y + 0.05));
-  lab = mix(lab, vec3(0.2, 0.4, 0.95), step(q.y + 0.05, -0.12) * 0.9);
-  col = mix(col, lab, label);
-  vec2 hub = vec2(abs(q.x) - 0.38, q.y + 0.03);
-  float reel = smoothstep(0.17, 0.15, length(hub));
-  float ang = atan(hub.y, hub.x) + u_time * 2.0 * sign(q.x);
-  vec3 rc = vec3(0.12) + vec3(0.85) * step(0.5, fract(ang / TAU * 6.0)) * smoothstep(0.06, 0.08, length(hub)) * 0.4;
-  col = mix(col, rc, reel * label);
-  float track = step(0.93, fract(p.y * 2.0 - u_time * 0.35));
-  float jitter = (hash13(vec3(floor(p.y * 30.0), floor(u_time * 10.0), 2.0)) - 0.5) * track;
-  col = mix(col, vec3(0.9, 0.95, 1.0), track * 0.35 + abs(jitter) * 0.6);
-  col.r += 0.05 * sin(p.y * 160.0);
-  col *= 0.5 + 0.55 * diff;
-  col += vec3(1.0) * (spec * 1.0 + specW * 0.15) + vec3(1.0, 0.5, 0.3) * fres * 0.3;
+  // VHS (refaite en 0.2.7) : cassette vue de face, étiquette coucher de soleil années 80, bobines qui tournent
+  // dans la fenêtre, et défauts de bande (lignes, bande de tracking, image qui se dédouble en couleurs).
+  SKINS.vhs = `
+float vRect(vec2 q, vec2 c, vec2 h, float rad){ vec2 d = abs(q - c) - h + rad; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - rad; }
+vec3 vhsFace(vec2 q, float t, float sd, float df){
+  float grain = noise(vec3(q * 40.0, sd * 9.0));
+  vec3 col = vec3(0.085, 0.075, 0.11) * (0.8 + 0.4 * grain);
+  col += vec3(0.06) * smoothstep(0.012, 0.0, abs(fract(q.y * 18.0) - 0.5) - 0.35) * step(q.y, -0.72);
+  float strip = smoothstep(0.006, -0.006, vRect(q, vec2(0.0, -0.53), vec2(0.62, 0.035), 0.02));
+  vec3 sc = mix(vec3(1.0, 0.2, 0.7), vec3(0.2, 0.9, 1.0), smoothstep(-0.6, 0.6, q.x));
+  col = mix(col, sc * (0.7 + 0.4 * df), strip);
+  for (int i = 0; i < 2; i++){
+    float gx = i == 0 ? -0.36 : 0.36;
+    float gd = vRect(q, vec2(gx, -0.68), vec2(0.13, 0.05), 0.03);
+    col = mix(col, vec3(0.02), smoothstep(0.006, -0.006, gd));
+    col = mix(col, vec3(0.25, 0.24, 0.3), smoothstep(0.01, 0.0, abs(gd)) * 0.8);
+  }
+  col += vec3(0.5, 0.45, 0.65) * smoothstep(0.03, 0.0, abs(q.y - 0.68)) * 0.18;
+  float lab = vRect(q, vec2(0.0, 0.38), vec2(0.74, 0.25), 0.04);
+  float lb = smoothstep(0.006, -0.006, lab);
+  float y = (q.y - 0.13) / 0.5;
+  vec3 sun = mix(vec3(0.35, 0.08, 0.55), vec3(1.0, 0.25, 0.55), smoothstep(0.0, 0.45, y));
+  sun = mix(sun, vec3(1.0, 0.62, 0.15), smoothstep(0.45, 0.75, y));
+  sun = mix(sun, vec3(1.0, 0.9, 0.35), smoothstep(0.78, 0.95, y));
+  float stripe = step(0.5, fract(y * 9.0)) * smoothstep(0.55, 0.2, y);
+  float disc = smoothstep(0.205, 0.195, length(q - vec2(0.38, 0.36))) * (1.0 - stripe * 0.9);
+  sun = mix(sun, vec3(1.0, 0.82, 0.3), disc);
+  sun = mix(sun, vec3(0.97, 0.95, 0.9), step(0.56, q.y));
+  sun = mix(sun, vec3(0.1, 0.1, 0.14), step(abs(q.y - 0.595), 0.008) * step(abs(q.x + 0.35), 0.3));
+  col = mix(col, sun * (0.75 + 0.35 * df), lb);
+  float win = vRect(q, vec2(0.0, -0.2), vec2(0.6, 0.2), 0.08);
+  float wn = smoothstep(0.006, -0.006, win);
+  vec3 wc = vec3(0.07, 0.06, 0.08);
+  for (int i = 0; i < 2; i++){
+    float sx = i == 0 ? -1.0 : 1.0;
+    vec2 c = vec2(0.33 * sx, -0.2);
+    float k = fract(t * 0.02 + sd);
+    float tr = mix(0.1, 0.19, i == 0 ? k : 1.0 - k);
+    vec2 d = q - c; float dl = length(d);
+    float tape = smoothstep(tr + 0.005, tr - 0.005, dl);
+    vec3 tc = vec3(0.32, 0.2, 0.12) * (0.75 + 0.25 * sin(dl * 260.0));
+    wc = mix(wc, tc, tape);
+    float a = atan(d.y, d.x) - t * 2.2;
+    float hub = smoothstep(0.075, 0.068, dl);
+    float teeth = step(0.5, fract(a / TAU * 6.0)) * smoothstep(0.03, 0.035, dl);
+    vec3 hc = mix(vec3(0.92, 0.92, 0.95), vec3(0.15), teeth * step(dl, 0.06));
+    hc = mix(hc, vec3(0.05), smoothstep(0.022, 0.018, dl));
+    wc = mix(wc, hc, hub);
+  }
+  wc += vec3(0.6, 0.7, 0.9) * smoothstep(0.04, 0.0, abs(q.x + q.y * 0.6 + 0.25)) * 0.12;
+  col = mix(col, wc, wn);
+  col = mix(col, vec3(0.2, 0.2, 0.24), smoothstep(0.012, 0.0, abs(win)) * 0.8);
+  for (int i = 0; i < 4; i++){
+    vec2 sc = vec2(i < 2 ? -0.82 : 0.82, mod(float(i), 2.0) < 0.5 ? 0.42 : -0.45);
+    float sdd = length(q - sc);
+    col = mix(col, vec3(0.45) * (0.7 + 0.5 * df), smoothstep(0.042, 0.034, sdd));
+    col = mix(col, vec3(0.08), smoothstep(0.008, 0.0, abs(q.x - sc.x)) * step(sdd, 0.034));
+  }
+  return col;
+}
+` + SIG + `{
+  float wob = sin(u_angle) * 0.18;
+  float cw = cos(wob), sw = sin(wob);
+  vec2 q = vec2(cw * p.x - sw * p.y, sw * p.x + cw * p.y) * 1.04;
+  float t = u_time;
+  float ts = floor(t * 6.0);
+  float burst = step(0.78, hash13(vec3(ts, u_seed * 7.0, 1.0)));
+  float bandY = 1.2 - fract(t * 0.13 + u_seed) * 2.4;
+  float band = smoothstep(0.09, 0.0, abs(q.y - bandY));
+  float line = floor(q.y * 70.0);
+  float jit = (hash13(vec3(line, floor(t * 24.0), 3.0)) - 0.5) * (0.03 * band + 0.05 * burst);
+  vec2 qq = q + vec2(jit, 0.0);
+  float sp = 0.012 + 0.03 * burst;
+  vec3 col;
+  col.r = vhsFace(qq + vec2(sp, 0.0), t, u_seed, diff).r;
+  col.g = vhsFace(qq, t, u_seed, diff).g;
+  col.b = vhsFace(qq - vec2(sp, 0.0), t, u_seed, diff).b;
+  float sn = hash13(vec3(floor(q * 90.0), floor(t * 30.0)));
+  col = mix(col, vec3(sn), band * 0.45);
+  col *= 0.86 + 0.14 * sin(q.y * 230.0);
+  float rec = step(0.5, fract(t * 0.8));
+  col = mix(col, vec3(1.0, 0.15, 0.1), smoothstep(0.045, 0.035, length(q - vec2(0.42, 0.8))) * rec);
+  vec2 tq = q - vec2(-0.42, 0.8);
+  float tri = step(tq.x, 0.05) * step(-0.04, tq.x) * step(abs(tq.y), (0.05 - tq.x) * 0.6);
+  col = mix(col, vec3(0.9, 1.0, 0.9), tri);
+  col *= 0.6 + 0.5 * diff;
+  col += vec3(1.0) * (spec * 1.0 + specW * 0.12) + vec3(1.0) * glassArc(p) * 0.25 + vec3(1.0, 0.4, 0.7) * fres * 0.3;
   return col;
 }`;
+
+  /* ================= 0.2.7 : Pizza (rare) ================= */
+  SKINS.pizza = SIG + `{
+  vec2 q = s.xy;
+  float rl = length(q), a = atan(q.y, q.x);
+  float edge = 0.8 + 0.025 * sin(a * 9.0 + u_seed * 5.0) + 0.02 * noise(vec3(a * 4.0, u_seed * 3.0, 1.0));
+  vec3 crust = mix(vec3(0.85, 0.55, 0.22), vec3(0.6, 0.32, 0.1), smoothstep(edge + 0.02, 1.0, rl));
+  crust *= 0.85 + 0.3 * noise(s * 14.0 + u_seed);
+  crust = mix(crust, vec3(0.38, 0.18, 0.06), step(0.82, noise(s * 22.0 + 3.0)) * 0.6);
+  vec3 sauce = mix(vec3(0.75, 0.13, 0.05), vec3(0.9, 0.3, 0.08), noise(s * 6.0 + u_seed * 2.0));
+  float ch = fbm3(s * 3.5 + u_seed * 7.0);
+  vec3 cheese = mix(vec3(1.0, 0.86, 0.45), vec3(1.0, 0.95, 0.7), noise(s * 12.0));
+  cheese = mix(cheese, vec3(0.8, 0.5, 0.15), step(0.78, noise(s * 16.0 + 9.0)) * 0.7);
+  vec3 col = mix(sauce, cheese, smoothstep(0.38, 0.46, ch));
+  vec2 g = q * 3.2 + u_seed * 5.0; vec2 c = floor(g); vec2 f = fract(g) - 0.5 - (vec2(hash13(vec3(c, 1.0)), hash13(vec3(c, 2.0))) - 0.5) * 0.35;
+  float h = hash13(vec3(c, 7.0));
+  float pd = length(f);
+  float pep = step(0.4, h) * smoothstep(0.26, 0.24, pd);
+  vec3 pc = mix(vec3(0.62, 0.08, 0.06), vec3(0.42, 0.04, 0.03), smoothstep(0.15, 0.25, pd));
+  pc = mix(pc, vec3(0.3, 0.02, 0.02), step(0.7, noise(vec3(f * 30.0, h * 9.0))) * 0.6);
+  col = mix(col, pc, pep);
+  vec2 g2 = q * 4.5 + u_seed * 11.0; vec2 c2 = floor(g2); vec2 f2 = fract(g2) - 0.5;
+  float h2 = hash13(vec3(c2, 4.0)), an = h2 * 6.283;
+  vec2 u = vec2(cos(an) * f2.x + sin(an) * f2.y, -sin(an) * f2.x + cos(an) * f2.y);
+  float leaf = step(0.82, h2) * smoothstep(1.05, 0.95, length(u / vec2(0.2, 0.09))) * (1.0 - pep);
+  col = mix(col, mix(vec3(0.1, 0.45, 0.1), vec3(0.2, 0.62, 0.15), smoothstep(-0.05, 0.05, u.y)), leaf);
+  float inside = smoothstep(edge + 0.012, edge - 0.012, rl);
+  col = mix(crust, col, inside);
+  float cut = smoothstep(0.02, 0.006, abs(sin((a + u_seed) * 4.0)) * rl) * inside * step(0.05, rl);
+  col *= 1.0 - cut * 0.5;
+  col *= 0.45 + 0.7 * diff;
+  col += vec3(1.0, 0.95, 0.8) * (spec * 0.7 + specW * 0.12) * inside + vec3(1.0, 0.7, 0.4) * fres * 0.25;
+  return col;
+}`;
+
 
   SKINS.ultrasmoke = SIG + `{
   float t = u_time * 0.25;

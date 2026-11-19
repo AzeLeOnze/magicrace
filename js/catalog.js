@@ -81,6 +81,7 @@
     { id: 'oeilchat',   rarity: 'rare',      name: 'Œil de chat',      accent: '#9be33a', blurb: 'Une pupille fendue qui s’ouvre et se referme' },
     { id: 'cassoulet',  rarity: 'rare',      name: 'Cassoulet',        accent: '#b8652a', blurb: 'Haricots, saucisse et croûte dorée' },
     { id: 'cafecreme',  rarity: 'rare',      name: 'Café Crème',       accent: '#c99a6a', blurb: 'Café noir et tourbillon de crème' },
+    { id: 'pizza',      rarity: 'rare',      name: 'Pizza',            accent: '#e8a43a', blurb: 'Fromage fondu, pepperoni et basilic' },
     // épiques
     { id: 'lavalamp',   rarity: 'epic',      name: 'Lampe à lave',     accent: '#ff7a3d', blurb: 'La cire qui monte, années 70' },
     { id: 'aurore',     rarity: 'epic',      name: 'Aurore boréale',   accent: '#3dffb0', blurb: 'Rideaux de lumière sur la neige' },
@@ -96,7 +97,7 @@
     { id: 'orage',      rarity: 'epic',      name: 'Orage',            accent: '#9fb3d9', blurb: 'Nuages noirs et éclairs' },
     { id: 'hacker',     rarity: 'epic',      name: 'Hacker',           accent: '#33ff77', blurb: 'Pluie de code vert sur écran noir' },
     { id: 'glitch',     rarity: 'epic',      name: 'Glitch',           accent: '#ff3ec8', blurb: 'Image qui bugue et se décale' },
-    { id: 'vhs',        rarity: 'epic',      name: 'VHS',              accent: '#ff6a3d', blurb: 'Cassette rembobinée, image qui saute' },
+    { id: 'vhs',        rarity: 'epic',      name: 'VHS',              accent: '#ff6a3d', blurb: 'Cassette des années 80, bobines qui tournent et image qui saute' },
     { id: 'neonveines', rarity: 'epic',      name: 'Veines néon',      accent: '#39ffb4', blurb: 'Lumière arc-en-ciel parcourue de veines sombres' },
     { id: 'encrefluo',  rarity: 'epic',      name: 'Encre fluo',       accent: '#ff3ec8', blurb: 'De l’encre noire qui tourbillonne dans le néon' },
     { id: 'ectoplasme', rarity: 'epic',      name: 'Ectoplasme',       accent: '#9dff2e', blurb: 'Matière fluo vivante et cellules sombres' },

@@ -3,7 +3,7 @@ window.MR = window.MR || {};
 (function (MR) {
   'use strict';
 
-  MR.VERSION = '0.2.6';
+  MR.VERSION = '0.2.7';
   MR.MAX_MARBLES = 60;
   MR.TAU = Math.PI * 2;
 

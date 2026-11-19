@@ -865,7 +865,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : ta propre image sur une bille, titres de niveau, Œil de dragon et 11 autres billes'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : bille Pizza et nouvelle bille VHS'); }, 900);
     }
 
     const unlock = function () {
