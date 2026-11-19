@@ -1,5 +1,11 @@
 # MagicRace — journal des versions
 
+## 0.2.11 — 20 novembre 2026
+- Nouvelle musique : « Protorave 3000 » de RIHEV, en boucle sans coupure. L'ancienne musique synthétisée ne sert plus que si le fichier ne peut pas être chargé.
+- À chaque fois que le morceau commence ou recommence, une petite carte avec un vinyle qui tourne annonce « Vous écoutez RIHEV - Protorave 3000 ».
+- Tout ce qui bouge en rythme suit maintenant 128 BPM : dalles des pistes de danse, enceintes, lasers, flippers, lumières et décors. Le rythme se recale à chaque boucle du morceau.
+- Niveau 6 : le mur sous le 1er entonnoir ne dépasse plus (une bille pouvait s'y bloquer) et le trampoline du bas touche le mur central. La 1re piste de danse pousse doucement les billes, comme celles de la fosse aux enceintes du niveau 7.
+
 ## 0.2.10 — 19 novembre 2026
 - Son sur téléphone : plus de grésillements ni de craquements. Le téléphone utilise un tampon audio plus grand, des réverbes plus légères et moins de bruitages en même temps. La musique et les bruitages sont aussi préparés un peu plus à l'avance.
 - Partout : un limiteur empêche la sortie de saturer quand beaucoup de billes s'entrechoquent, et l'attaque des notes est adoucie (moins de petits clics).

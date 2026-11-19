@@ -1,10 +1,16 @@
-/* MagicRace — audio : musique « Velvet Mirrorball » (dark disco swinguée, synthétisée en direct) + bruitages. */
+/* MagicRace — audio : musique « Protorave 3000 » de RIHEV (fichier en boucle, 128 BPM) + bruitages.
+ * La musique synthétisée en direct (« Velvet Mirrorball ») ne sert plus que si le fichier ne peut pas être chargé. */
 (function (MR) {
   'use strict';
 
   const A = {};
-  const BPM = 116, SPB = 60 / BPM, S16 = SPB / 4, SWING = 0.17;
+  const BPM = 128, SPB = 60 / BPM, S16 = SPB / 4, SWING = 0.17;
   A.BPM = BPM;
+  // morceau en boucle (0.2.11). LEAD_FRAMES : 1er échantillon audible du fichier d'origine (WAV) ; le MP3 ajoute un
+  // peu de silence au début, qu'on retrouve en cherchant ce 1er son. LOOP : durée exacte de l'original (112 mesures).
+  const TRACK = { url: 'audio/protorave3000.mp3', title: 'RIHEV - Protorave 3000', LOOP: 9261861 / 44100, LEAD_S: 9 / 44100, BEATS: 448 };
+  A.TRACK = TRACK;
+  let trackBuf = null, trackState = 'idle', loopStart = 0, trackSrc = null, mode = 'none', loopIdx = -1, loopTimer = null, wantMusic = false;
 
   let ctx = null, master, comp, musicBus, sfxBus, drumBus, pumpBus, revSend, delaySend, noiseBuf, sfxRev;
   let seqTimer = null, nextTime = 0, stepIdx = 0, musicStart = 0, running = false;
@@ -68,6 +74,7 @@
     srev.connect(srevOut); srevOut.connect(sfxBus);
     sfxRev = ctx.createGain(); sfxRev.connect(srev);
 
+    loadTrack();
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
     const nd = noiseBuf.getChannelData(0);
     for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
@@ -339,9 +346,70 @@
     }
   }
 
+  // charge et décode le morceau une seule fois ; repère le début réel du son pour une boucle sans coupure
+  function loadTrack() {
+    if (trackState !== 'idle') return;
+    trackState = 'loading';
+    fetch(TRACK.url).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.arrayBuffer();
+    }).then(function (ab) {
+      return new Promise(function (res, rej) { const pr = ctx.decodeAudioData(ab, res, rej); if (pr && pr.then) pr.then(res, rej); });
+    }).then(function (buf) {
+      const d = buf.getChannelData(0), lim = Math.min(d.length, Math.floor(buf.sampleRate * 1.5));
+      let i = 0;
+      while (i < lim && Math.abs(d[i]) < 300 / 32768) i++;
+      loopStart = i < lim ? Math.max(0, i / buf.sampleRate - TRACK.LEAD_S) : 0;
+      if (loopStart + TRACK.LOOP > buf.duration) loopStart = Math.max(0, buf.duration - TRACK.LOOP);
+      trackBuf = buf;
+      trackState = 'ready';
+      if (wantMusic && mode !== 'track') { stopAll(); A.startMusic(); }
+    }).catch(function (e) {
+      console.warn('[MagicRace] musique introuvable, musique de secours', e);
+      trackState = 'failed';
+      if (wantMusic && mode === 'none') A.startMusic();
+    });
+  }
+  function stopAll() {
+    running = false;
+    if (seqTimer) clearInterval(seqTimer);
+    seqTimer = null;
+    if (trackSrc) { try { trackSrc.stop(ctx.currentTime + 0.25); } catch (e) { /* déjà arrêtée */ } trackSrc = null; }
+    if (loopTimer) clearInterval(loopTimer);
+    loopTimer = null;
+    mode = 'none';
+  }
+  // chaque fois que le morceau (re)commence : petite annonce « Vous écoutez … »
+  function watchLoop() {
+    if (!ctx || mode !== 'track') return;
+    const k = Math.floor((ctx.currentTime - musicStart) / TRACK.LOOP);
+    if (k >= 0 && k !== loopIdx) { loopIdx = k; if (A.onTrackStart) A.onTrackStart(TRACK.title); }
+  }
+
   A.startMusic = function () {
+    wantMusic = true;
     if (!ctx || running) return;
-    running = true;
+    if (trackState === 'ready') {
+      running = true; mode = 'track';
+      const t0 = ctx.currentTime + 0.1;
+      trackSrc = ctx.createBufferSource();
+      trackSrc.buffer = trackBuf;
+      trackSrc.loop = true;
+      trackSrc.loopStart = loopStart;
+      trackSrc.loopEnd = loopStart + TRACK.LOOP;
+      trackSrc.connect(musicBus);
+      trackSrc.start(t0, loopStart);
+      musicStart = t0; loopIdx = -1;
+      musicBus.gain.cancelScheduledValues(ctx.currentTime);
+      musicBus.gain.setValueAtTime(0, ctx.currentTime);
+      musicBus.gain.setTargetAtTime(S.musicVol, t0, 0.05);
+      loopTimer = setInterval(watchLoop, 250);
+      setTimeout(watchLoop, 150);
+      return;
+    }
+    if (trackState === 'loading' || trackState === 'idle') return;   // elle démarrera dès qu'elle sera prête
+    // secours : musique synthétisée
+    running = true; mode = 'synth';
     stepIdx = 0;
     nextTime = ctx.currentTime + 0.12;
     musicStart = nextTime;
@@ -350,16 +418,22 @@
     seqTimer = setInterval(tick, 25);
     tick();
   };
+  // débogage : où en est la musique
+  A.trackInfo = function () { return { state: trackState, mode: mode, loopStart: loopStart, loopEnd: loopStart + TRACK.LOOP, dur: trackBuf ? trackBuf.duration : 0, rate: trackBuf ? trackBuf.sampleRate : 0 }; };
   A.stopMusic = function () {
-    running = false;
-    if (seqTimer) clearInterval(seqTimer);
-    seqTimer = null;
+    wantMusic = false;
     if (ctx) musicBus.gain.setTargetAtTime(0, ctx.currentTime, 0.08);
+    stopAll();
   };
 
-  // temps musical (en temps) pour synchroniser les lumières
+  // temps musical (en temps) pour synchroniser les lumières et tout ce qui bouge en rythme ;
+  // avec le morceau, on repart pile sur le temps 448 × n à chaque boucle (pas de dérive)
   A.beat = function () {
-    if (ctx && running) return Math.max(0, (ctx.currentTime - musicStart) / SPB);
+    if (ctx && running) {
+      const e = Math.max(0, ctx.currentTime - musicStart);
+      if (mode === 'track') { const k = Math.floor(e / TRACK.LOOP); return k * TRACK.BEATS + (e - k * TRACK.LOOP) / SPB; }
+      return e / SPB;
+    }
     return performance.now() / 1000 / SPB;
   };
 

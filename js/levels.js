@@ -831,9 +831,10 @@
 
       // pistes de danse en zigzag : les dalles font sauter les billes sur chaque temps
       const K = T.pad || 200;
-      L.seg(280, 1198, 280, 1320, { kind: 'wall', e: 0.3 });
+      L.seg(280, 1213, 280, 1320, { kind: 'wall', e: 0.3 });
       L.arc(360, 1320, 80, 90, 180, 6, { kind: 'disco', e: 0.2 });
       L.danceFloor(360, 1400, 1300, 1500, 10, K);
+      L.boost(360, 1400, 900, 1457.4, 140);
       L.arc(1370, 1570, 125, -100, 100, 14, { kind: 'wall', e: 0.2 });
       L.boost(1375, 1694, 1150, 1711, 420);
       L.danceFloor(1348, 1694, 300, 1774, 10, K);
@@ -864,7 +865,7 @@
       }
       L.tramp(830, 3270, 1120, 3335, 200);
       L.tramp(1375, 3440, 1090, 3505, 200);
-      L.tramp(830, 3590, 1110, 3640, 180);
+      L.tramp(808, 3586, 1110, 3640, 180);
       L.seg(200, 3700, 700, 3820, { kind: 'funnel', e: 0.25 });
       L.seg(1400, 3700, 900, 3820, { kind: 'funnel', e: 0.25 });
       L.seg(200, 3060, 700, 3030, { kind: 'wall', e: 0.3 });
@@ -970,6 +971,7 @@
       L.speaker(mir(560), 2080, mir(190), 2380, -(T.blast || 3000), -600);
       L.danceFloor(180, 2400, 700, 2500, 6, T.pad || 220);
       L.danceFloor(mir(180), 2400, mir(700), 2500, 6, T.pad || 220);
+      L.boost(180, 2400, 700, 2500, 140); L.boost(mir(180), 2400, mir(700), 2500, 140);
 
       // rampes coupées par des lasers qui s'ouvrent un temps sur deux
       L.seg(720, 2597.8, 1300, 2640, { kind: 'ramp', e: 0.25 });

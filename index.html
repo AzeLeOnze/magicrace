@@ -255,6 +255,19 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
 .res-list .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .res-list .tm{font:500 12px var(--font-mono);color:var(--gold);font-variant-numeric:tabular-nums}
 .res-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.now-playing{position:fixed;left:16px;bottom:calc(16px + var(--sb));z-index:61;display:flex;align-items:center;gap:12px;padding:8px 16px 8px 8px;border-radius:999px;background:rgba(18,8,32,.92);border:1px solid rgba(255,62,165,.55);box-shadow:0 0 24px rgba(255,62,165,.3),0 10px 30px rgba(0,0,0,.45);pointer-events:none;animation:npIn .5s cubic-bezier(.2,.9,.3,1.15)}
+.now-playing.out{animation:npOut .45s ease-in forwards}
+@keyframes npIn{from{transform:translateX(-120%);opacity:0}}
+@keyframes npOut{to{transform:translateX(-120%);opacity:0}}
+.np-vinyl{width:44px;height:44px;flex:none;border-radius:50%;background:repeating-radial-gradient(circle,#0b0910 0 2px,#1d1a26 2px 3px);box-shadow:0 0 0 2px #2a2238,0 0 14px rgba(63,240,255,.35);display:grid;place-items:center;animation:npSpin 1.8s linear infinite;position:relative}
+.np-vinyl::after{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 20deg,transparent 0 12%,rgba(255,255,255,.16) 15%,transparent 20% 62%,rgba(255,255,255,.12) 65%,transparent 70%)}
+.np-vinyl i{width:15px;height:15px;border-radius:50%;background:conic-gradient(#ff3ea5 0 50%,#ffcf4a 50% 100%);box-shadow:0 0 0 2px #0b0910 inset}
+@keyframes npSpin{to{transform:rotate(360deg)}}
+.np-tx{display:flex;flex-direction:column;line-height:1.2}
+.np-tx small{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}
+.np-tx b{font-size:14px;color:#fff;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.np-vinyl{animation-duration:6s}}
+@media (max-width:699px){.now-playing{bottom:auto;top:calc(70px + var(--st));left:10px}}
 .toast{position:fixed;left:50%;bottom:calc(100px + var(--sb));transform:translateX(-50%);z-index:60;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:12px;background:rgba(20,10,36,.94);border:1px solid var(--line-hi);font-weight:600;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 
 /* ---------- Panneau : section Cartes ---------- */
@@ -715,7 +728,7 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
 <canvas id="stage" aria-label="Piste de la course de billes"></canvas>
 
 <div class="hud" id="hud">
-  <div class="brand"><span class="logo">MagicRace</span><span class="ver" id="hudVer">v0.2.10</span></div>
+  <div class="brand"><span class="logo">MagicRace</span><span class="ver" id="hudVer">v0.2.11</span></div>
   <div class="clock-row"><span class="clock" id="clock">00:00.00</span><span class="status" id="status">Prêt</span></div>
   <ol class="board" id="board" aria-label="Classement en direct"></ol>
   <div class="hud-hint" id="hudHint">Touchez un nom pour le suivre</div>
@@ -739,7 +752,7 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
   <div class="panel-head">
     <span class="logo">MagicRace</span>
     <div class="head-meta">
-      <span class="vbadge" id="panelVer">v0.2.10</span>
+      <span class="vbadge" id="panelVer">v0.2.11</span>
       <span class="tagline">Course de billes · dark disco</span>
     </div>
     <button class="icon-btn" id="pClose" type="button" aria-label="Replier le panneau">
@@ -953,6 +966,7 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div class="now-playing" id="nowPlaying" hidden aria-live="polite"><span class="np-vinyl" aria-hidden="true"><i></i></span><span class="np-tx"><small>Vous écoutez</small><b id="npTitle"></b></span></div>
 <div class="notifs" id="notifs" aria-live="polite"></div>
 <div class="level-up" id="levelUp" hidden></div>
 <div class="prof-ov" id="profileOv" hidden>
@@ -984,24 +998,24 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
 </div>
 <div class="confetti" id="confetti"></div>
 
-<script src="js/util.js?v=0.2.10"></script>
-<script src="js/catalog.js?v=0.2.10"></script>
-<script src="js/cards.js?v=0.2.10"></script>
-<script src="js/firebase.js?v=0.2.10"></script>
-<script src="js/sync.js?v=0.2.10"></script>
-<script src="js/audio.js?v=0.2.10"></script>
-<script src="js/marbleGL.js?v=0.2.10"></script>
-<script src="js/physics.js?v=0.2.10"></script>
-<script src="js/levels.js?v=0.2.10"></script>
-<script src="js/fx.js?v=0.2.10"></script>
-<script src="js/render.js?v=0.2.10"></script>
-<script src="js/ui.js?v=0.2.10"></script>
-<script src="js/packs.js?v=0.2.10"></script>
-<script src="js/settings.js?v=0.2.10"></script>
-<script src="js/progress.js?v=0.2.10"></script>
-<script src="js/account.js?v=0.2.10"></script>
-<script src="js/profile.js?v=0.2.10"></script>
-<script src="js/main.js?v=0.2.10"></script>
+<script src="js/util.js?v=0.2.11"></script>
+<script src="js/catalog.js?v=0.2.11"></script>
+<script src="js/cards.js?v=0.2.11"></script>
+<script src="js/firebase.js?v=0.2.11"></script>
+<script src="js/sync.js?v=0.2.11"></script>
+<script src="js/audio.js?v=0.2.11"></script>
+<script src="js/marbleGL.js?v=0.2.11"></script>
+<script src="js/physics.js?v=0.2.11"></script>
+<script src="js/levels.js?v=0.2.11"></script>
+<script src="js/fx.js?v=0.2.11"></script>
+<script src="js/render.js?v=0.2.11"></script>
+<script src="js/ui.js?v=0.2.11"></script>
+<script src="js/packs.js?v=0.2.11"></script>
+<script src="js/settings.js?v=0.2.11"></script>
+<script src="js/progress.js?v=0.2.11"></script>
+<script src="js/account.js?v=0.2.11"></script>
+<script src="js/profile.js?v=0.2.11"></script>
+<script src="js/main.js?v=0.2.11"></script>
 <script>
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 </script></body>

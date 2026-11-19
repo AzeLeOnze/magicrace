@@ -72,6 +72,7 @@
     G = game;
     $('#hudVer').textContent = 'v' + MR.VERSION;
     $('#panelVer').textContent = 'v' + MR.VERSION;
+    MR.Audio.onTrackStart = function (title) { UI.nowPlaying(title); };
 
     $('#pToggle').addEventListener('click', function () { UI.setPanel(true); });
     $('#pClose').addEventListener('click', function () { UI.setPanel(false); });
@@ -260,6 +261,19 @@
   };
   UI.hideBanner = function () { clearTimeout(bannerTimer); $('#banner').hidden = true; };
 
+  // « Vous écoutez … » avec un vinyle qui tourne, à chaque fois que le morceau recommence
+  let npTimer = null;
+  UI.nowPlaying = function (title) {
+    const el = $('#nowPlaying');
+    $('#npTitle').textContent = title;
+    clearTimeout(npTimer);
+    el.classList.remove('out');
+    el.hidden = true; void el.offsetWidth; el.hidden = false;
+    npTimer = setTimeout(function () {
+      el.classList.add('out');
+      npTimer = setTimeout(function () { el.hidden = true; el.classList.remove('out'); }, 450);
+    }, 5000);
+  };
   UI.toast = function (msg) {
     const el = $('#toast');
     el.textContent = msg;

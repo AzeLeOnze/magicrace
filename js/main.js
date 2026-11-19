@@ -340,10 +340,10 @@
   function inBox(m, z) { return m.x > z.x0 && m.x < z.x1 && m.y > z.y0 && m.y < z.y1; }
 
   // portes de regroupement : fermées tant que le gros du peloton n'est pas arrivé (ou qu'on attend depuis trop longtemps)
-  // temps musical commun : dalles, enceintes et lasers suivent la musique (ou une horloge à 116 BPM en simulation)
+  // temps musical commun : dalles, enceintes, lasers et flippers suivent la musique (ou une horloge au même tempo en simulation)
   function setBeat() {
     const W = G.world;
-    const bt = G.simulating || !MR.Audio.ready() ? (G.state === 'racing' ? G.raceTime : G.time) * 116 / 60 : MR.Audio.beat();
+    const bt = G.simulating || !MR.Audio.ready() ? (G.state === 'racing' ? G.raceTime : G.time) * MR.Audio.BPM / 60 : MR.Audio.beat();
     const bn = Math.floor(bt);
     W.beatN = bn;
     W.beatOn = bt - bn < 0.16;
@@ -873,7 +873,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : son plus propre sur téléphone (plus de craquements)'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : nouvelle musique, RIHEV - Protorave 3000 (128 BPM)'); }, 900);
     }
 
     const unlock = function () {
