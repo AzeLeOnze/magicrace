@@ -606,19 +606,26 @@
   function drawEditor(dt) {
     if (!ed || !draft) return;
     const GL = MR.MarbleGL;
-    const specs = shaderPrev.map(function (o, i) {
-      return { skin: o.skin.id, col: MR.hexToRgb(o.skin.accent), seed: 0.37 + i * 0.13, angle: G.time * 0.5 + i };
-    });
+    // la zone des aperçus de l'atlas ne tient que 64 cases de 128 : on rend les billes de collection par paquets
+    // (chaque paquet est copié dans ses vignettes avant que le suivant ne réutilise les cases)
+    const TILE = 128, cap = Math.max(1, Math.floor(GL.ATLAS_W / TILE) * Math.floor((GL.ATLAS_H - GL.MAIN_H) / TILE));
+    for (let start = 0; start < shaderPrev.length; start += cap) {
+      const chunk = shaderPrev.slice(start, start + cap);
+      const specs = chunk.map(function (o, k) {
+        const i = start + k;
+        return { skin: o.skin.id, col: MR.hexToRgb(o.skin.accent), seed: 0.37 + i * 0.13, angle: G.time * 0.5 + i };
+      });
+      const slots = GL.ok ? GL.render(specs, TILE, G.time, 1) : [];
+      chunk.forEach(function (o, k) {
+        o.ctx.clearRect(0, 0, 96, 96);
+        if (slots[k]) GL.blit(o.ctx, slots[k], 3, 3, 90, 90);
+        else GL.fallback(o.ctx, 48, 48, 44, { skin: o.skin.id, color: o.skin.accent });
+      });
+    }
     const m = ed.m;
     m.cfg = draft;
-    specs.push(GL.spec(draft, m.angle, m.spec));
-    const slots = GL.ok ? GL.render(specs, 128, G.time, 1) : [];
-    shaderPrev.forEach(function (o, i) {
-      o.ctx.clearRect(0, 0, 96, 96);
-      if (slots[i]) GL.blit(o.ctx, slots[i], 3, 3, 90, 90);
-      else GL.fallback(o.ctx, 48, 48, 44, { skin: o.skin.id, color: o.skin.accent });
-    });
-    drawPreviewScene(dt, slots[specs.length - 1]);
+    const own = GL.ok ? GL.render([GL.spec(draft, m.angle, m.spec)], TILE, G.time, 1) : [];
+    drawPreviewScene(dt, own[0]);
   }
 
   function drawPreviewScene(dt, slot) {

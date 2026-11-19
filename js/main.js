@@ -865,7 +865,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : bille Pizza et nouvelle bille VHS'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : aperçus des billes de collection corrigés'); }, 900);
     }
 
     const unlock = function () {

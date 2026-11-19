@@ -1,5 +1,8 @@
 # MagicRace — journal des versions
 
+## 0.2.8 — 19 novembre 2026
+- Corrigé : dans l'éditeur de bille, au-delà d'environ 60 billes de collection obtenues, les dernières s'affichaient comme de simples boules de couleur au lieu de leur vrai motif. Les aperçus sont maintenant dessinés par paquets, quel que soit le nombre de billes.
+
 ## 0.2.7 — 19 novembre 2026
 - Nouvelle bille rare « Pizza » : croûte dorée, sauce tomate, fromage fondu, pepperoni, basilic et parts découpées. 164 cartes au total.
 - La bille épique « VHS » est refaite. On voit maintenant une cassette de face, avec une étiquette au soleil couchant années 80 et deux bobines qui tournent dans la fenêtre (la bande passe de l'une à l'autre). Il y a aussi des vis, un ▶ et un point REC qui clignote. L'image a les défauts d'une vieille bande : lignes, bande de tracking qui défile et couleurs qui se dédoublent par moments.
