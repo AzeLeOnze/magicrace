@@ -1,5 +1,11 @@
 # MagicRace — journal des versions
 
+## 0.2.4 — 19 novembre 2026
+- Niveau 5 « Soleil Levant » refait : parfaitement symétrique, et moins punitif. Les petits triangles du haut n'ont plus de destructeur, les lames des grands triangles et des coupes sont plus courtes, la scie est plus petite et ne grossit qu'après 100 secondes.
+- Niveau 4 : chaque cercle tourne 1,045 fois plus vite que le précédent, prévu pour les 59 cercles (le dernier va environ 13 fois plus vite que le premier).
+- Corrigé : le soleil du fond (bandes qui dépassaient du disque). Il est maintenant à moitié levé sur l'horizon.
+- Zones : les niveaux sont rangés par zone de 10 niveaux de course. Le menu montre la « Zone Disco » (5 niveaux sur 10, les niveaux 6 à 10 sont grisés) et la prochaine zone à venir.
+
 ## 0.2.3 — 19 novembre 2026
 - Nouveau niveau 5 « Soleil Levant » (d'après le schéma de l'auteur), sur la plage au lever du soleil. C'est un éliminatoire, sans ligne d'arrivée :
   - les billes tombent de l'enclos dans une salle de flipper : bumpers, picots, deux roues qui tournent, triangles et barres qui font rebondir fort ;

@@ -84,9 +84,13 @@
 
     // course
     const sel = $('#levelSel');
-    sel.innerHTML = MR.LEVELS.map(function (l) {
-      return '<option value="' + l.id + '">Niveau ' + l.num + ' — ' + MR.esc(l.name) + '</option>';
-    }).join('') + '<option disabled>Niveau ' + (MR.LEVELS.length + 1) + ' — bientôt</option>';
+    sel.innerHTML = MR.ZONES.map(function (z) {
+      const lv = MR.LEVELS.filter(function (l) { return l.zone === z.id; });
+      let h = '<optgroup label="' + MR.esc(z.name) + ' · ' + lv.length + '/' + z.size + ' niveaux">';
+      lv.forEach(function (l) { h += '<option value="' + l.id + '">Niveau ' + l.num + ' — ' + MR.esc(l.name) + '</option>'; });
+      for (let n = lv.length + 1; n <= z.size; n++) h += '<option disabled>Niveau ' + n + ' — bientôt</option>';
+      return h + '</optgroup>';
+    }).join('') + '<optgroup label="Prochaine zone"><option disabled>🔒 Bientôt</option></optgroup>';
     sel.value = G.levelDef.id;
     sel.addEventListener('change', function () { G.loadLevel(sel.value); });
 

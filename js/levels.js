@@ -3,7 +3,9 @@
   'use strict';
 
   MR.LEVELS = [];
-  MR.registerLevel = function (def) { MR.LEVELS.push(def); };
+  // zones : 10 niveaux de course chacune (0.2.4 : seule la Zone Disco existe, niveaux 6 à 10 à venir)
+  MR.ZONES = [{ id: 'disco', name: 'Zone Disco', size: 10 }];
+  MR.registerLevel = function (def) { if (!def.zone) def.zone = 'disco'; MR.LEVELS.push(def); };
   MR.levelById = function (id) {
     for (let i = 0; i < MR.LEVELS.length; i++) if (MR.LEVELS[i].id === id) return MR.LEVELS[i];
     return MR.LEVELS[0];
@@ -592,9 +594,9 @@
       for (let k = 0; k < rings; k++) {
         const R = R0 + k * dR;
         const hue = (k * 360 / Math.max(6, Math.min(rings, 24)) + 300) % 360;
-        // tous les trous partent vers le haut ; chaque cercle tourne 1,1× plus vite que le précédent (plafonné)
+        // tous les trous partent vers le haut ; chaque cercle tourne 1,045× plus vite que le précédent (59 cercles max : ×12,9 au dernier)
         L.rings.push({ cx: cx, cy: cy, R: R, t: 5, gap: Math.max((r * 2.1 + 4) / R, T.gapA || 0.19), angle: -Math.PI / 2,
-          omega: Math.min((T.w0 || 0.45) * Math.pow(1.1, k), T.wmax || 3), e: 1, hue: hue, rgb: hsl(hue, 0.95, 0.6) });
+          omega: (T.w0 || 0.26) * Math.pow(1.045, k), e: 1, hue: hue, rgb: hsl(hue, 0.95, 0.6) });
       }
       // départ au milieu : grille hexagonale serrée dans le plus petit cercle
       L.spawnSlots = function (k) {
@@ -620,18 +622,20 @@
   });
 
   /* ------------------------------------------------------------------ *
-   * Niveau 5 — Soleil Levant (0.2.3, d'après le schéma de l'auteur) : flipper éliminatoire au lever du soleil.
+   * Niveau 5 — Soleil Levant (0.2.3, refait symétrique en 0.2.4) : flipper éliminatoire au lever du soleil.
    * Les billes tombent de l'enclos dans la salle (bumpers, picots, roues, triangles), ressortent par le bas sur le toit,
    * remontent par les couloirs accélérés et retombent dans la salle. Les destructeurs bleus font exploser les billes ;
-   * la dernière en vie gagne. Coordonnées du schéma (553 × 873) × 3.
+   * la dernière en vie gagne. Tout est tracé côté gauche puis reflété à l'identique côté droit.
    * ------------------------------------------------------------------ */
   MR.registerLevel({
     id: 'soleil-levant',
     num: 5,
+    zone: 'disco',
     name: 'Soleil Levant',
     build: function () {
+      // repère du schéma (553 × 873), × 3 ; l'axe de symétrie est au milieu
       const X = function (x) { return (x - 10) * 3; }, Y = function (y) { return (y - 8) * 3; };
-      const W = X(545), H = Y(865);
+      const W = X(545), H = Y(865), MX = function (x) { return 555 - x; };
       const L = Builder(W, H);
       L.gravity = 1000;
       L.marbleR = 15;
@@ -640,8 +644,11 @@
       L.elim = true;
       L.timeLimit = 600;
       const T = MR.L5 || {};   // réglages de test
-      L.overtime = T.over || 90;
+      L.overtime = T.over || 100;
       L.sawGrow = T.grow || 2.5;
+      L.sawMax = 2.4;
+      // chaque élément de gauche et son reflet à droite
+      const both = function (fn, x1, y1, x2, y2, a, b) { fn(x1, y1, x2, y2, a, b); fn(MX(x1), y1, MX(x2), y2, a, b); };
       const wall = function (x1, y1, x2, y2) { L.seg(X(x1), Y(y1), X(x2), Y(y2), { kind: 'wall', e: 0.35 }); };
       const sling = function (x1, y1, x2, y2, k) { L.sling(X(x1), Y(y1), X(x2), Y(y2), k); };
       const killer = function (x1, y1, x2, y2) { L.killer(X(x1), Y(y1), X(x2), Y(y2)); };
@@ -651,52 +658,57 @@
       L.seg(W, H, 0, H, { kind: 'frame', t: 10, e: 0.2 });
       L.seg(0, H, 0, 0, { kind: 'frame', t: 10, e: 0.4 });
 
-      // enclos de départ (pointillés du schéma) et ses trappes
-      wall(190, 14, 190, 75); wall(322, 14, 322, 75);
-      L.door(X(190), Y(75), (X(322) - X(190)) / 2, 0, Math.PI / 2, 7);
-      L.door(X(322), Y(75), (X(322) - X(190)) / 2, Math.PI, Math.PI / 2, -7);
-      L.spawn = { x0: X(190) + 22, x1: X(322) - 22, y: Y(75) - 6 - 16, gap: 31 };
+      // enclos de départ centré et ses trappes
+      both(wall, 207, 14, 207, 75);
+      const half = (X(348) - X(207)) / 2;
+      L.door(X(207), Y(75), half, 0, Math.PI / 2, 7);
+      L.door(X(348), Y(75), half, Math.PI, Math.PI / 2, -7);
+      L.spawn = { x0: X(207) + 22, x1: X(348) - 22, y: Y(75) - 6 - 16, gap: 31 };
       L.startView = { x: W / 2, y: 620 };
 
       // la salle (murs verts)
-      wall(103, 148, 140, 112); wall(103, 148, 112, 620); wall(112, 620, 130, 635); wall(130, 635, 205, 575);
-      wall(403, 103, 438, 145); wall(438, 145, 443, 622); wall(443, 622, 417, 638); wall(417, 638, 345, 572);
-      // le toit sous la salle et les couloirs extérieurs
-      L.poly([[X(10), Y(748)], [X(58), Y(748)], [X(273), Y(595)], [X(495), Y(750)], [X(545), Y(750)]], { kind: 'wall', e: 0.3 });
-      wall(10, 163, 95, 8); wall(472, 8, 545, 190);
-      // couloirs accélérés (flèches jaunes) : les billes remontent tout en haut
+      both(wall, 103, 150, 142, 112);
+      both(wall, 103, 150, 108, 620);
+      both(wall, 108, 620, 126, 636);
+      both(wall, 126, 636, 200, 576);
+      // le toit sous la salle, les couloirs extérieurs et leurs pans du haut
+      L.poly([[X(10), Y(748)], [X(58), Y(748)], [X(277.5), Y(596)], [X(497), Y(748)], [X(545), Y(748)]], { kind: 'wall', e: 0.3 });
+      both(wall, 10, 163, 95, 8);
+      // couloirs accélérés (flèches jaunes) sur toute la hauteur, puis poussée vers la salle tout en haut
       L.zone(X(10), Y(110), X(100), Y(748), 0, -2700);
-      L.zone(X(446), Y(110), X(545), Y(750), 0, -2700);
-      // tout en haut, la poussée envoie les billes au-dessus de la salle, où elles retombent dedans
+      L.zone(X(455), Y(110), X(545), Y(748), 0, -2700);
       L.zone(X(10), Y(8), X(150), Y(118), T.side || 2600, -800);
-      L.zone(X(398), Y(8), X(545), Y(112), -(T.side || 2600), -800);
-      // petites poches du bas de la salle : elles renvoient les billes vers le haut
-      L.zone(X(118), Y(560), X(180), Y(632), 900, -2600);
-      L.zone(X(372), Y(560), X(437), Y(634), -900, -2600);
+      L.zone(X(405), Y(8), X(545), Y(118), -(T.side || 2600), -800);
+      // poches du bas de la salle : elles renvoient les billes vers le haut
+      L.zone(X(116), Y(560), X(180), Y(632), 900, -2600);
+      L.zone(X(375), Y(560), X(439), Y(632), -900, -2600);
 
       // bumpers ronds et picots
-      L.bumper(X(172), Y(133), 30, 240); L.bumper(X(250), Y(128), 58, 280); L.bumper(X(339), Y(128), 30, 240);
-      L.bumper(X(212), Y(190), 24, 220); L.bumper(X(298), Y(190), 24, 220);
-      [[205, 155], [257, 168], [300, 153], [162, 190], [355, 193], [255, 218], [203, 233], [303, 238]].forEach(function (q) { L.peg(X(q[0]), Y(q[1]), 11); });
-      // triangles rebondissants (rouges) avec un destructeur sur leur face du bas (bleu)
-      sling(103, 148, 133, 170, 420); killer(133, 170, 105, 198);
-      sling(438, 145, 413, 165, 420); killer(413, 165, 437, 195);
-      sling(108, 348, 175, 380, 480); killer(175, 380, 110, 415);
-      sling(438, 335, 372, 377, 480); killer(372, 377, 438, 410);
-      // coupes pièges : demi-cercle vert, lame bleue au fond
+      L.bumper(X(277.5), Y(126), 56, 280);
+      L.bumper(X(172), Y(133), 30, 240); L.bumper(X(MX(172)), Y(133), 30, 240);
+      L.bumper(X(214), Y(192), 24, 220); L.bumper(X(MX(214)), Y(192), 24, 220);
+      [[205, 156], [162, 192], [203, 234]].forEach(function (q) { L.peg(X(q[0]), Y(q[1]), 11); L.peg(X(MX(q[0])), Y(q[1]), 11); });
+      L.peg(X(277.5), Y(176), 11); L.peg(X(277.5), Y(226), 11);
+      // petits triangles du haut : rebondissants, sans destructeur
+      both(sling, 103, 150, 133, 172, 400);
+      both(wall, 133, 172, 106, 198);
+      // coupes pièges : demi-cercle vert, courte lame bleue au fond
       L.arc(X(172), Y(272), 46, 0, 180, 10, { kind: 'wall', e: 0.3 });
-      killer(158, 266, 186, 283);
-      L.arc(X(378), Y(272), 46, 0, 180, 10, { kind: 'wall', e: 0.3 });
-      killer(364, 283, 392, 266);
-      // deux roues qui tournent (violet)
+      L.arc(X(MX(172)), Y(272), 46, 0, 180, 10, { kind: 'wall', e: 0.3 });
+      killer(165, 281, 180, 281); killer(MX(180), 281, MX(165), 281);
+      // deux roues qui tournent en miroir (violet)
       L.rotor(X(200), Y(335), 105, 4, 1.5, 0.2, 14, 'wheel');
-      L.rotor(X(338), Y(333), 105, 4, -1.5, 0.6, 14, 'wheel');
+      L.rotor(X(MX(200)), Y(335), 105, 4, -1.5, Math.PI - 0.2, 14, 'wheel');
+      // grands triangles : bord rebondissant, destructeur seulement au milieu de la face du bas
+      both(sling, 106, 348, 175, 381, 460);
+      both(wall, 175, 381, 108, 416);
+      both(killer, 158, 389, 128, 405);
       // barres rebondissantes et scie destructrice au centre
-      sling(230, 381, 304, 383, 300);
-      sling(265, 413, 267, 460, 300); sling(267, 503, 269, 555, 300);
-      L.saw(X(266), Y(482), 38);
-      L.sign('LA DERNIÈRE BILLE EN VIE GAGNE', X(273), Y(800), 34, '#ffb347');
-      L.finish = { y: Infinity, none: true, box: { x0: X(103), x1: X(443), y0: Y(110), y1: Y(620) } };
+      sling(240, 382, 315, 382, 300);
+      sling(277.5, 413, 277.5, 460, 300); sling(277.5, 504, 277.5, 556, 300);
+      L.saw(X(277.5), Y(482), 32);
+      L.sign('LA DERNIÈRE BILLE EN VIE GAGNE', X(277.5), Y(800), 34, '#ffb347');
+      L.finish = { y: Infinity, none: true, box: { x0: X(103), x1: X(452), y0: Y(110), y1: Y(620) } };
       return L;
     }
   });

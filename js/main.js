@@ -848,7 +848,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveau 5 « Soleil Levant », destructeurs et 6 nouvelles billes !'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveau 5 refait, cercles du niveau 4 ajustés, Zone Disco'); }, 900);
     }
 
     const unlock = function () {

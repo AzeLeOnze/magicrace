@@ -113,17 +113,17 @@
       ctx.fillRect(s.x * vw, s.y * hz * 0.92, s.r, s.r);
     }
     // lune (nuit) ou soleil qui se lève sur l'horizon (lever de soleil)
-    const mx = sun ? vw * 0.5 : vw * 0.78, my = sun ? hz * 1.0 : hz * 0.3, mr = Math.min(vw, vh) * (sun ? 0.13 : 0.06);
+    const mx = sun ? vw * 0.5 : vw * 0.78, my = sun ? hz + Math.min(vw, vh) * 0.035 : hz * 0.3, mr = Math.min(vw, vh) * (sun ? 0.12 : 0.06);
     if (sun) {
-      g = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 5);
-      g.addColorStop(0, 'rgba(255,200,120,0.75)'); g.addColorStop(0.4, 'rgba(255,120,90,0.25)'); g.addColorStop(1, 'rgba(255,120,90,0)');
+      // halo, puis le disque à moitié sorti de la mer (coupé net à l'horizon)
+      g = ctx.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 4.5);
+      g.addColorStop(0, 'rgba(255,214,140,0.7)'); g.addColorStop(0.45, 'rgba(255,130,100,0.22)'); g.addColorStop(1, 'rgba(255,130,100,0)');
       ctx.fillStyle = g; ctx.fillRect(0, 0, vw, hz);
-      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, vw, hz); ctx.clip();
-      g = ctx.createLinearGradient(0, my - mr, 0, my);
-      g.addColorStop(0, '#fff2a8'); g.addColorStop(1, '#ff8a3c');
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, vw, hz); ctx.clip();
+      g = ctx.createLinearGradient(0, my - mr, 0, my + mr);
+      g.addColorStop(0, '#fff6c4'); g.addColorStop(0.55, '#ffbd5a'); g.addColorStop(1, '#ff7a3c');
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.fill();
-      ctx.fillStyle = 'rgba(106,44,110,0.55)';
-      for (let k = 0; k < 4; k++) ctx.fillRect(mx - mr, my - mr * (0.18 + k * 0.17), mr * 2, mr * 0.05 * (4 - k));
       ctx.restore();
     } else {
       g = ctx.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 4);
