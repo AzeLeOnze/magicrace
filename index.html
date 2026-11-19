@@ -119,6 +119,8 @@ body.panel-open .panel{transform:none;visibility:visible;transition:transform .4
 select,.txt{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:9px 11px;font:500 14px var(--font-ui)}
 select:focus,.txt:focus{border-color:var(--cyan);outline:none}
 select option{background:var(--velvet);color:var(--ink)}
+select optgroup{background:#0c0617;color:var(--gold);font-style:normal;font-weight:800}
+select option:disabled{background:var(--velvet);color:#7d7196}
 input[type=range]{width:100%;accent-color:var(--magenta)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-weight:700;font-size:14px;white-space:nowrap;transition:background .15s,border-color .15s}
 .btn:hover:not(:disabled){background:rgba(255,255,255,.1);border-color:var(--line-hi)}
@@ -965,24 +967,24 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
 </div>
 <div class="confetti" id="confetti"></div>
 
-<script src="js/util.js?v=0.2.4.1"></script>
-<script src="js/catalog.js?v=0.2.4.1"></script>
-<script src="js/cards.js?v=0.2.4.1"></script>
-<script src="js/firebase.js?v=0.2.4.1"></script>
-<script src="js/sync.js?v=0.2.4.1"></script>
-<script src="js/audio.js?v=0.2.4.1"></script>
-<script src="js/marbleGL.js?v=0.2.4.1"></script>
-<script src="js/physics.js?v=0.2.4.1"></script>
-<script src="js/levels.js?v=0.2.4.1"></script>
-<script src="js/fx.js?v=0.2.4.1"></script>
-<script src="js/render.js?v=0.2.4.1"></script>
-<script src="js/ui.js?v=0.2.4.1"></script>
-<script src="js/packs.js?v=0.2.4.1"></script>
-<script src="js/settings.js?v=0.2.4.1"></script>
-<script src="js/progress.js?v=0.2.4.1"></script>
-<script src="js/account.js?v=0.2.4.1"></script>
-<script src="js/profile.js?v=0.2.4.1"></script>
-<script src="js/main.js?v=0.2.4.1"></script>
+<script src="js/util.js?v=0.2.4.2"></script>
+<script src="js/catalog.js?v=0.2.4.2"></script>
+<script src="js/cards.js?v=0.2.4.2"></script>
+<script src="js/firebase.js?v=0.2.4.2"></script>
+<script src="js/sync.js?v=0.2.4.2"></script>
+<script src="js/audio.js?v=0.2.4.2"></script>
+<script src="js/marbleGL.js?v=0.2.4.2"></script>
+<script src="js/physics.js?v=0.2.4.2"></script>
+<script src="js/levels.js?v=0.2.4.2"></script>
+<script src="js/fx.js?v=0.2.4.2"></script>
+<script src="js/render.js?v=0.2.4.2"></script>
+<script src="js/ui.js?v=0.2.4.2"></script>
+<script src="js/packs.js?v=0.2.4.2"></script>
+<script src="js/settings.js?v=0.2.4.2"></script>
+<script src="js/progress.js?v=0.2.4.2"></script>
+<script src="js/account.js?v=0.2.4.2"></script>
+<script src="js/profile.js?v=0.2.4.2"></script>
+<script src="js/main.js?v=0.2.4.2"></script>
 <script>
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 </script></body>
