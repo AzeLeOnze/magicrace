@@ -40,6 +40,8 @@
       elastic: !!def.elastic,
       locked: !!def.lockUntilStart,
       constSpeed: 0,
+      // rythme de la musique (main.js) : numéro du temps et courte fenêtre juste après chaque temps
+      beatN: 0, beatOn: false,
       marbles: [],
       events: [],
       t: 0
@@ -201,6 +203,7 @@
     for (k = 0; k < w.circles.length; k++) {
       const c = w.circles[k];
       if (c.spin) { c.omega = c.spin * Math.sin(w.t * c.freq + (c.ph || 0)); c.angle = (c.angle || 0) + c.omega * dt; }
+      else if (c.rot) { c.omega = c.rot; c.angle = (c.angle || 0) + c.rot * dt; }
     }
     if (!w.locked) for (k = w.ringIdx; k < w.rings.length; k++) w.rings[k].angle += w.rings[k].omega * dt;
     const ring = w.rings[w.ringIdx] || null;
@@ -254,6 +257,14 @@
           // trampoline : renvoie la bille avec une poussée supplémentaire
           const hitSeg = capsule(w, m, s.ax, s.ay, s.bx, s.by, s.t, s.e, s, s.kind, 0, 0, 0);
           if (hitSeg && s.kill) { m.doom = true; s.flash = 1; }
+          else if (hitSeg && s.beat) {
+            // dalle de piste de danse : fait sauter la bille sur chaque temps de la musique
+            if (w.beatOn && m.padBeat !== w.beatN) {
+              m.padBeat = w.beatN;
+              m.vx += HIT.nx * s.kick; m.vy += HIT.ny * s.kick;
+              s.flash = 1;
+            }
+          }
           else if (hitSeg && s.kick && HIT.vn < -40) {
             m.vx += HIT.nx * s.kick; m.vy += HIT.ny * s.kick;
             s.flash = 1;
@@ -270,7 +281,7 @@
           const d = Math.sqrt(d2) || 1e-6, nx = dx / d, ny = dy / d;
           m.x = c.x + nx * R; m.y = c.y + ny * R;
           const om = c.omega || 0;
-          const vn = contact(w, m, nx, ny, c.e, -om * ny * c.r, om * nx * c.r, c, c.kind, om ? 0.02 : 0);
+          const vn = contact(w, m, nx, ny, c.e, -om * ny * c.r, om * nx * c.r, c, c.kind, om ? (c.grip || 0.02) : 0);
           if (c.kill) { m.doom = true; c.flash = 1; }
           else if (c.kick && vn < -10) { m.vx += nx * c.kick; m.vy += ny * c.kick; c.flash = 1; }
         }
@@ -306,6 +317,7 @@
       }
       for (k = 0; k < w.zones.length; k++) {
         const z = w.zones[k];
+        if (z.beat && !w.beatOn) continue;   // enceinte : souffle seulement sur le temps
         if (m.x > z.x0 && m.x < z.x1 && m.y > z.y0 && m.y < z.y1 && !m.held) {
           m.vx += z.ax * dt; m.vy += z.ay * dt;
           z.hot = 1;

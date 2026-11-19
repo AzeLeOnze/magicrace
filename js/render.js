@@ -23,12 +23,15 @@
     rotor:  { core: '#c78bff', body: '#160a2a', glow: 'rgba(190,120,255,0.9)' },
     tramp:  { core: '#eafffb', body: '#0a3a3c', glow: 'rgba(63,240,255,0.95)' },
     sling:  { core: '#ff5a5a', body: '#3a0a10', glow: 'rgba(255,70,70,0.95)' },
+    step:   { core: '#fff1a8', body: '#2a1c05', glow: 'rgba(255,215,90,0.9)' },
+    gear:   { core: '#ffcf4a', body: '#2a1c05', glow: 'rgba(255,190,70,0.9)' },
+    flap:   { core: '#3ff0ff', body: '#06202a', glow: 'rgba(63,240,255,0.95)' },
     kill:   { core: '#7fe8ff', body: '#06203a', glow: 'rgba(40,160,255,1)' },
     open:   { core: '#7dffb0', body: '#0a2a18', glow: 'rgba(80,255,150,0.85)' }
   };
   // halo des billes dans la couche bloom (réduit en 0.0.3)
   const EMISSIVE = { solid: 0.12, nebula: 0.2, magma: 0.42, opal: 0.16, plasma: 0.38, disco: 0.2,
-    lavalamp: 0.3, aurore: 0.2, rypoint: 0.25, ultrasmoke: 0.35, sunshine: 0.4, deepfire: 0.35, electrique: 0.3, diamant: 0.24, hypnose: 0.26, abysses: 0.2, chrome: 0.16, glace: 0.16 };
+    lavalamp: 0.3, aurore: 0.2, rypoint: 0.25, ultrasmoke: 0.35, galaxium: 0.3, neonveines: 0.32, encrefluo: 0.3, ectoplasme: 0.34, sunshine: 0.4, deepfire: 0.35, electrique: 0.3, diamant: 0.24, hypnose: 0.26, abysses: 0.2, chrome: 0.16, glace: 0.16 };
   const BEAMS = [[255, 62, 165], [63, 240, 255], [155, 92, 255], [255, 207, 74]];
   const TILE_HUES = [330, 185, 270, 45];
   const bokeh = [];
@@ -186,9 +189,108 @@
     ctx.restore();
   }
 
+
+  // fond « discothèque » (niveau 7) : mur de LED, boule à facettes, faisceaux, enceintes et foule qui bougent en rythme
+  const crowd = [];
+  for (let i = 0; i < 46; i++) crowd.push({ x: (i + Math.random() * 0.6) / 46, h: 0.7 + Math.random() * 0.5, ph: Math.random() * 6, arm: Math.random() < 0.35 });
+  function drawClub(time, kick, beat, L) {
+    const vw = R.vw, vh = R.vh, bi = Math.floor(beat), ph = beat - bi;
+    let g = ctx.createLinearGradient(0, 0, 0, vh);
+    g.addColorStop(0, '#07020f'); g.addColorStop(0.6, '#120626'); g.addColorStop(1, '#05020a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, vw, vh);
+    // mur de LED : damier de points qui s'allume par vagues
+    const cell = Math.max(18, Math.min(vw, vh) / 26), floorY = vh * 0.72;
+    const par = (cam.y * 0.04) % cell;
+    for (let y = -par; y < floorY; y += cell) {
+      for (let x = 0; x < vw; x += cell) {
+        const i = Math.round(x / cell), j = Math.round((y + par) / cell);
+        const wave = Math.sin(i * 0.45 + j * 0.3 - beat * Math.PI);
+        if (wave < 0.55) continue;
+        const hue = (i * 9 + j * 5 + bi * 40) % 360;
+        ctx.fillStyle = 'hsla(' + hue + ',95%,58%,' + ((wave - 0.55) * (0.25 + 0.35 * kick)).toFixed(3) + ')';
+        ctx.fillRect(x + cell * 0.3, y + cell * 0.3, cell * 0.4, cell * 0.4);
+      }
+    }
+    // faisceaux qui balaient depuis la boule à facettes
+    const bx = vw * 0.5, by = vh * 0.1, br = Math.min(vw, vh) * 0.07;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const cols = [[255, 62, 165], [63, 240, 255], [255, 207, 74], [155, 92, 255], [80, 255, 150]];
+    for (let k = 0; k < 7; k++) {
+      const a = Math.PI / 2 + Math.sin(time * 0.6 + k * 1.3) * 1.1;
+      const c = cols[(k + bi) % cols.length], len = vh * 1.2, w2 = 0.06;
+      g = ctx.createLinearGradient(bx, by, bx + Math.cos(a) * len, by + Math.sin(a) * len);
+      g.addColorStop(0, MR.rgbStr(c, 0.18 + 0.25 * kick)); g.addColorStop(1, MR.rgbStr(c, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(bx, by);
+      ctx.lineTo(bx + Math.cos(a - w2) * len, by + Math.sin(a - w2) * len);
+      ctx.lineTo(bx + Math.cos(a + w2) * len, by + Math.sin(a + w2) * len);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    // la boule à facettes suspendue
+    ctx.strokeStyle = 'rgba(220,220,240,0.5)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, by - br); ctx.stroke();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(bx, by, br, 0, TAU); ctx.clip();
+    ctx.fillStyle = '#2a2440'; ctx.fillRect(bx - br, by - br, br * 2, br * 2);
+    const T = Math.max(5, br / 5), rot = time * 0.8;
+    for (let yy = -br; yy < br; yy += T) {
+      const rowW = Math.sqrt(Math.max(0, br * br - (yy + T / 2) * (yy + T / 2)));
+      for (let xx = -rowW; xx < rowW; xx += T) {
+        const h = MR.hash(Math.floor((xx + rot * 40) / T), Math.floor(yy / T) + bi * 0.37);
+        ctx.fillStyle = h > 0.8 ? 'hsl(' + Math.floor(h * 360) + ',90%,75%)' : 'hsl(250,12%,' + (40 + h * 40).toFixed(0) + '%)';
+        ctx.fillRect(bx + xx + 1, by + yy + 1, T - 2, T - 2);
+      }
+    }
+    ctx.restore();
+    g = ctx.createRadialGradient(bx, by, br * 0.8, bx, by, br * 2.4);
+    g.addColorStop(0, 'rgba(255,255,255,' + (0.18 + 0.2 * kick).toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, br * 2.4, 0, TAU); ctx.fill();
+    // piste de danse en perspective : dalles qui s'allument sur le temps
+    const rows = 6, cols2 = 10;
+    for (let r = 0; r < rows; r++) {
+      const y0 = floorY + (vh - floorY) * Math.pow(r / rows, 1.4), y1 = floorY + (vh - floorY) * Math.pow((r + 1) / rows, 1.4);
+      const sp0 = 0.55 + 0.45 * r / rows, sp1 = 0.55 + 0.45 * (r + 1) / rows;
+      for (let c = 0; c < cols2; c++) {
+        const u0 = (c / cols2 - 0.5), u1 = ((c + 1) / cols2 - 0.5);
+        const on = MR.hash(c * 7 + r * 13, bi) > 0.55;
+        const hue = [330, 185, 270, 45, 140][(c + r + bi) % 5];
+        ctx.fillStyle = on ? 'hsla(' + hue + ',95%,' + (45 + 15 * kick).toFixed(0) + '%,' + (0.35 + 0.4 * kick).toFixed(3) + ')' : 'rgba(30,20,50,0.6)';
+        ctx.beginPath();
+        ctx.moveTo(vw / 2 + u0 * vw * sp0 * 1.6, y0); ctx.lineTo(vw / 2 + u1 * vw * sp0 * 1.6, y0);
+        ctx.lineTo(vw / 2 + u1 * vw * sp1 * 1.6, y1); ctx.lineTo(vw / 2 + u0 * vw * sp1 * 1.6, y1);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+    // la foule : silhouettes qui sautent sur le temps
+    const bounce = Math.pow(1 - ph, 3);
+    ctx.fillStyle = '#05010c';
+    for (let i = 0; i < crowd.length; i++) {
+      const p = crowd[i], x = p.x * vw, hh = vh * 0.11 * p.h;
+      const y = vh + 6 - bounce * vh * 0.015 * (0.5 + 0.5 * Math.sin(p.ph + bi));
+      ctx.beginPath(); ctx.arc(x, y - hh, hh * 0.18, 0, TAU); ctx.fill();
+      ctx.fillRect(x - hh * 0.2, y - hh * 0.85, hh * 0.4, hh * 0.9);
+      if (p.arm) { ctx.save(); ctx.translate(x, y - hh * 0.75); ctx.rotate(-0.4 - 0.6 * bounce); ctx.fillRect(-hh * 0.05, -hh * 0.55, hh * 0.1, hh * 0.55); ctx.restore(); }
+    }
+    // enceintes sur les côtés : membranes qui battent
+    [[0.06, 1], [0.94, -1]].forEach(function (sp) {
+      const x = vw * sp[0], w = Math.min(vw * 0.09, 90), h = w * 2.2, y = vh * 0.5;
+      ctx.fillStyle = '#0d0818'; ctx.fillRect(x - w / 2, y - h / 2, w, h);
+      ctx.strokeStyle = 'rgba(155,92,255,0.6)'; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y - h / 2, w, h);
+      [[-0.25, 0.28], [0.18, 0.4]].forEach(function (c) {
+        const rr = w * c[1] * (1 + 0.12 * kick);
+        ctx.fillStyle = '#1c1430'; ctx.beginPath(); ctx.arc(x, y + c[0] * h, rr, 0, TAU); ctx.fill();
+        ctx.strokeStyle = 'rgba(63,240,255,' + (0.4 + 0.5 * kick).toFixed(3) + ')'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(x, y + c[0] * h, rr * 0.7, 0, TAU); ctx.stroke();
+      });
+    });
+  }
+
   function drawBackground(time, kick, beat, L) {
     const vw = R.vw, vh = R.vh, S = MR.Game.settings;
     if (L && (L.theme === 'beach' || L.theme === 'sunrise')) drawBeach(time, kick, beat, L);
+    else if (L && L.theme === 'club') drawClub(time, kick, beat, L);
     else {
       const g = ctx.createLinearGradient(0, 0, 0, vh);
       g.addColorStop(0, '#0e0619'); g.addColorStop(0.6, '#08040f'); g.addColorStop(1, '#040208');
@@ -235,7 +337,7 @@
   }
 
   function drawBoard(L, v) {
-    ctx.fillStyle = L.theme === 'beach' || L.theme === 'sunrise' ? 'rgba(20,10,40,0.2)' : 'rgba(32,16,56,0.42)';
+    ctx.fillStyle = L.theme === 'beach' || L.theme === 'sunrise' || L.theme === 'club' ? 'rgba(20,10,40,0.2)' : 'rgba(32,16,56,0.42)';
     ctx.fillRect(0, 0, L.W, L.H);
     const step = 80;
     ctx.fillStyle = 'rgba(244,237,255,0.06)';
@@ -370,10 +472,33 @@
   }
 
   // zones d'ascenseur : colonnes de chevrons « ^ » qui défilent vers le haut
-  function drawZones(W, b, v, time) {
+  function drawSpeaker(b, z, kick) {
+    const right = z.ax > 0, left = z.ax < 0, up = !right && !left;
+    const cx = right ? z.x0 - 34 : left ? z.x1 + 34 : (z.x0 + z.x1) / 2, cy = up ? z.y1 + 34 : (z.y0 + z.y1) / 2;
+    const w = up ? 110 : 60, h = up ? 60 : 110;
+    ctx.fillStyle = '#0d0818'; ctx.fillRect(cx - w / 2, cy - h / 2, w, h);
+    ctx.strokeStyle = '#9b5cff'; ctx.lineWidth = 3; ctx.strokeRect(cx - w / 2, cy - h / 2, w, h);
+    const rr = 22 * (1 + 0.18 * kick);
+    ctx.fillStyle = '#231a3a'; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#3ff0ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, rr * 0.6, 0, TAU); ctx.stroke();
+    b.fillStyle = 'rgba(155,92,255,' + (0.4 + 0.5 * kick).toFixed(3) + ')'; b.beginPath(); b.arc(cx, cy, rr * 1.4, 0, TAU); b.fill();
+    // ondes sonores vers la zone
+    const dir = right ? 0 : left ? Math.PI : -Math.PI / 2;
+    for (let k = 1; k <= 3; k++) {
+      const rad = 30 + k * 34 + (1 - kick) * 20;
+      const a = Math.max(0, kick - (k - 1) * 0.2);
+      if (a <= 0.02) continue;
+      ctx.strokeStyle = 'rgba(63,240,255,' + (0.7 * a).toFixed(3) + ')'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(cx, cy, rad, dir - 0.6, dir + 0.6); ctx.stroke();
+      b.strokeStyle = 'rgba(63,240,255,' + a.toFixed(3) + ')'; b.lineWidth = 8;
+      b.beginPath(); b.arc(cx, cy, rad, dir - 0.6, dir + 0.6); b.stroke();
+    }
+  }
+  function drawZones(W, b, v, time, kick) {
     for (let i = 0; i < W.zones.length; i++) {
       const z = W.zones[i];
-      if (z.x1 < v.x0 || z.x0 > v.x1 || z.y1 < v.y0 || z.y0 > v.y1) continue;
+      if (z.x1 + 120 < v.x0 || z.x0 - 120 > v.x1 || z.y1 + 120 < v.y0 || z.y0 - 120 > v.y1) continue;
+      if (z.speaker) { drawSpeaker(b, z, kick || 0); continue; }
       const cx = (z.x0 + z.x1) / 2, sz = 14, up = z.ay < 0;
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       for (let y = z.y1 - 40; y > z.y0 + 20; y -= 60) {
@@ -470,12 +595,75 @@
     b.beginPath(); b.arc(c.x, c.y, c.r * 1.5, 0, TAU); b.fill();
   }
 
+  // dalle lumineuse : sa couleur change à chaque temps, elle flashe quand elle fait sauter une bille
+  let padBeat = 0, padKick = 0;
+  function drawPad(b, s, i) {
+    const hue = [330, 185, 270, 45, 140][(i + padBeat) % 5];
+    const lit = Math.max(s.flash, padKick * 0.55);
+    ctx.lineCap = 'butt';
+    ctx.strokeStyle = 'hsl(' + hue + ',95%,' + (38 + 30 * lit).toFixed(0) + '%)'; ctx.lineWidth = s.t * 2 + 2;
+    ctx.beginPath(); ctx.moveTo(s.ax, s.ay); ctx.lineTo(s.bx, s.by); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.25 + 0.6 * lit).toFixed(3) + ')'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(s.ax, s.ay - s.t + 1); ctx.lineTo(s.bx, s.by - s.t + 1); ctx.stroke();
+    b.strokeStyle = 'hsla(' + hue + ',95%,60%,' + (0.35 + 0.65 * lit).toFixed(3) + ')'; b.lineWidth = s.t * 2 + 8;
+    b.beginPath(); b.moveTo(s.ax, s.ay); b.lineTo(s.bx, s.by); b.stroke();
+    ctx.lineCap = 'round';
+  }
+  // platine vinyle : sillons, étiquette qui tourne, reflet
+  function drawVinyl(c, b) {
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.fillStyle = '#0b0910'; ctx.beginPath(); ctx.arc(0, 0, c.r, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+    for (let rr = c.r * 0.42; rr < c.r * 0.97; rr += 5) { ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.stroke(); }
+    ctx.rotate(c.angle || 0);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, c.r * 0.96, -0.35, 0.35); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, c.r * 0.96, Math.PI - 0.35, Math.PI + 0.35); ctx.closePath(); ctx.fill();
+    const lab = c.r * 0.36;
+    ctx.fillStyle = '#ff3ea5'; ctx.beginPath(); ctx.arc(0, 0, lab, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#ffcf4a'; ctx.beginPath(); ctx.arc(0, 0, lab, -0.6, 0.6); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#05020a'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.fill();
+    ctx.restore();
+    b.strokeStyle = 'rgba(255,62,165,0.6)'; b.lineWidth = 6; b.beginPath(); b.arc(c.x, c.y, c.r, 0, TAU); b.stroke();
+  }
+  // moyeu d'engrenage doré avec rayons
+  function drawGearHub(c, b) {
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.fillStyle = '#3a2808'; ctx.beginPath(); ctx.arc(0, 0, c.r, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#ffcf4a'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, c.r - 3, 0, TAU); ctx.stroke();
+    ctx.rotate(c.angle || 0);
+    ctx.lineWidth = 8;
+    for (let k = 0; k < 5; k++) { ctx.rotate(TAU / 5); ctx.beginPath(); ctx.moveTo(0, c.r * 0.2); ctx.lineTo(0, c.r * 0.82); ctx.stroke(); }
+    ctx.fillStyle = '#ffe9a6'; ctx.beginPath(); ctx.arc(0, 0, c.r * 0.22, 0, TAU); ctx.fill();
+    ctx.restore();
+    b.fillStyle = 'rgba(255,190,70,0.45)'; b.beginPath(); b.arc(c.x, c.y, c.r * 1.1, 0, TAU); b.fill();
+  }
+  // laser en rythme : faisceau rouge entre deux émetteurs, il s'éteint quand il s'ouvre
+  function drawLaser(b, s, time) {
+    const on = 1 - s.q;
+    [[s.ax, s.ay], [s.bx, s.by]].forEach(function (e) {
+      ctx.fillStyle = '#1a0d2a'; ctx.fillRect(e[0] - 9, e[1] - 9, 18, 18);
+      ctx.fillStyle = on > 0.5 ? '#ff4d6d' : '#5a2a3a'; ctx.fillRect(e[0] - 4, e[1] - 4, 8, 8);
+    });
+    if (on < 0.05) return;
+    const flick = 0.85 + 0.15 * Math.sin(time * 60);
+    ctx.strokeStyle = 'rgba(255,240,245,' + (0.9 * on).toFixed(3) + ')'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(s.ax, s.ay); ctx.lineTo(s.bx, s.by); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,40,90,' + (0.7 * on * flick).toFixed(3) + ')'; ctx.lineWidth = 6;
+    ctx.stroke();
+    b.strokeStyle = 'rgba(255,40,90,' + (on * flick).toFixed(3) + ')'; b.lineWidth = 14;
+    b.beginPath(); b.moveTo(s.ax, s.ay); b.lineTo(s.bx, s.by); b.stroke();
+  }
+
   function drawGeometry(W, b, v, time) {
     ctx.lineCap = 'round'; b.lineCap = 'round';
     for (let i = 0; i < W.segs.length; i++) {
       const s = W.segs[i];
       if (s.maxx < v.x0 || s.minx > v.x1 || s.maxy < v.y0 || s.miny > v.y1) continue;
-      tube(b, s.ax, s.ay, s.bx, s.by, s.t, KIND[s.kind] || KIND.wall, s.kick || s.kill ? 0.35 + s.flash : 0);
+      if (s.kind === 'pad') { drawPad(b, s, i); continue; }
+      tube(b, s.ax, s.ay, s.bx, s.by, s.t, KIND[s.kind] || KIND.wall, s.kick || s.kill ? 0.35 + s.flash : s.kind === 'step' ? s.flash : 0);
       if (s.kill) drawBlade(b, s, time);
       if (s.kick) {
         // trampoline : ressorts dessinés sous la toile
@@ -506,6 +694,7 @@
     for (let i = 0; i < W.sliders.length; i++) {
       const s = W.sliders[i];
       if (Math.max(s.x0, s.x1) < v.x0 || Math.min(s.x0, s.x1) > v.x1 || Math.max(s.y0, s.y1) + 20 < v.y0 || Math.min(s.y0, s.y1) - 20 > v.y1) continue;
+      if (s.kind === 'laser') { drawLaser(b, s, time); continue; }
       const open = s.hold && s.hold.open;
       tube(b, s.x0, s.y0, s.x1, s.y1, s.t, open ? KIND.open : KIND.gate, open ? s.flash : (1 - s.q) * 0.6 + (s.hold ? 0.25 * Math.abs(Math.sin(time * 5)) : 0));
     }
@@ -519,6 +708,8 @@
       if (c.x + c.r + 40 < v.x0 || c.x - c.r - 40 > v.x1 || c.y + c.r + 40 < v.y0 || c.y - c.r - 40 > v.y1) continue;
       const f = c.flash;
       if (c.kind === 'saw') { drawSaw(c, b, time); continue; }
+      if (c.kind === 'vinyl') { drawVinyl(c, b); continue; }
+      if (c.kind === 'gearhub') { drawGearHub(c, b); continue; }
       if (c.kind === 'peg') {
         ctx.fillStyle = '#1a0d2a';
         ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, TAU); ctx.fill();
@@ -757,7 +948,8 @@
     drawSigns(L, b, v, time, kick);
     drawShapes(L, b, v, time, beat, kick);
     drawBoosts(W, b, v, time);
-    drawZones(W, b, v, time);
+    padBeat = Math.floor(beat); padKick = kick;
+    drawZones(W, b, v, time, kick);
     drawRings(G, W, L, b, beat, kick);
     drawHolds(G, W, b, v, kick);
     for (let i = 0; i < G.marbles.length; i++) {

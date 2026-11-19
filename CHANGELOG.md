@@ -1,5 +1,27 @@
 # MagicRace — journal des versions
 
+## 0.2.5 — 19 novembre 2026
+- Nouveau niveau 6 « Beach Party », sur la plage au lever du soleil :
+  - des bols en cascade qui débordent les uns dans les autres ;
+  - quatre pistes de danse en zigzag : les dalles s'allument et font sauter les billes sur chaque temps de la musique ;
+  - un engrenage doré qui tourne et relance les billes ;
+  - un aiguillage : un volet envoie les billes tantôt vers les picots, tantôt vers les trampolines ;
+  - une boule à facettes géante qui tourne et projette les billes, puis un sas avant l'arrivée.
+- Nouveau niveau 7 « Le Club », dans une discothèque : mur de LED, faisceaux qui balaient la salle, boule à facettes, piste lumineuse et foule qui danse, le tout en rythme.
+  - des escaliers lumineux à la sortie de l'enclos ;
+  - deux platines vinyles qui tournent en sens inverse ;
+  - une fosse aux enceintes qui soufflent les billes vers le centre sur chaque temps ;
+  - des rampes coupées par des lasers qui se ferment en rythme ;
+  - une piste de danse finale sous la boule à facettes.
+- Les dalles, les enceintes et les lasers suivent le tempo de la musique.
+- La Zone Disco compte maintenant 7 niveaux sur 10, et le mode run enchaîne les 7. Deux nouveaux succès : faire une course dans les niveaux 6 et 7.
+- 18 nouvelles billes, 151 cartes au total :
+  - légendaire : « Galaxium », une galaxie spirale noyée de nébuleuses ;
+  - 3 épiques néon : « Veines néon », « Encre fluo » et « Ectoplasme » ;
+  - 5 rares : « Donut », « Cookie », « Creep Smile », « Star » et « Saturne » ;
+  - 4 peu communes : « Yin et Yang », « Balle de tennis », « Basket » et « Coccinelle » ;
+  - 5 couleurs communes : Noisette, Aubergine, Sapin, Marine et Dragée.
+
 ## 0.2.4 — 19 novembre 2026
 - Niveau 5 « Soleil Levant » refait : parfaitement symétrique, et moins punitif. Les petits triangles du haut n'ont plus de destructeur, les lames des grands triangles et des coupes sont plus courtes, la scie est plus petite et ne grossit qu'après 100 secondes.
 - Niveau 4 : chaque cercle tourne 1,045 fois plus vite que le précédent, prévu pour les 59 cercles (le dernier va environ 13 fois plus vite que le premier).

@@ -45,6 +45,10 @@
     { id: 'nuage',      rarity: 'uncommon',  name: 'Nuage',            accent: '#8fd0ff', blurb: 'Ciel bleu, nuages qui passent' },
     { id: 'agrume',     rarity: 'uncommon',  name: 'Agrume',           accent: '#ffd23a', blurb: 'Tranche de citron bien juteuse' },
     { id: 'chewing',    rarity: 'uncommon',  name: 'Chewing-gum',      accent: '#ff7ac6', blurb: 'Rose bonbon, prêt à faire une bulle' },
+    { id: 'yinyang',    rarity: 'uncommon',  name: 'Yin et Yang',      accent: '#f2efe8', blurb: 'L’équilibre parfait, noir et blanc' },
+    { id: 'tennis',     rarity: 'uncommon',  name: 'Balle de tennis',  accent: '#cdf23a', blurb: 'Feutre fluo et couture blanche' },
+    { id: 'basket',     rarity: 'uncommon',  name: 'Basket',           accent: '#e8661c', blurb: 'Cuir orange et lignes noires' },
+    { id: 'coccinelle', rarity: 'uncommon',  name: 'Coccinelle',       accent: '#e3241b', blurb: 'Rouge à pois, porte-bonheur' },
     // rares
     { id: 'chrome',     rarity: 'rare',      name: 'Chrome',           accent: '#dfe6f2', blurb: 'Miroir poli, néons dans le reflet' },
     { id: 'damier',     rarity: 'rare',      name: 'Damier',           accent: '#f2f2f2', blurb: 'Le drapeau de l’arrivée' },
@@ -65,6 +69,11 @@
     { id: 'emeraude',   rarity: 'rare',      name: 'Émeraude',         accent: '#1fd18a', blurb: 'Gemme verte aux mille facettes' },
     { id: 'neon',       rarity: 'rare',      name: 'Néon',             accent: '#ff4fd8', blurb: 'Tubes de néon dans du verre fumé' },
     { id: 'fourrure',   rarity: 'rare',      name: 'Fourrure',         accent: '#c98a52', blurb: 'Pelage tout doux, poils en bataille' },
+    { id: 'donut',      rarity: 'rare',      name: 'Donut',            accent: '#ff73b0', blurb: 'Glaçage rose et vermicelles' },
+    { id: 'cookie',     rarity: 'rare',      name: 'Cookie',           accent: '#c98a45', blurb: 'Pépites de chocolat, tout juste sorti du four' },
+    { id: 'creepsmile', rarity: 'rare',      name: 'Creep Smile',      accent: '#ffd21a', blurb: 'Un sourire… un peu trop grand' },
+    { id: 'star',       rarity: 'rare',      name: 'Star',             accent: '#ffd34a', blurb: 'Une étoile d’or sur un ciel de nuit' },
+    { id: 'saturne',    rarity: 'rare',      name: 'Saturne',          accent: '#e3c48c', blurb: 'La planète aux anneaux, en orbite sur la piste' },
     // épiques
     { id: 'lavalamp',   rarity: 'epic',      name: 'Lampe à lave',     accent: '#ff7a3d', blurb: 'La cire qui monte, années 70' },
     { id: 'aurore',     rarity: 'epic',      name: 'Aurore boréale',   accent: '#3dffb0', blurb: 'Rideaux de lumière sur la neige' },
@@ -81,6 +90,9 @@
     { id: 'hacker',     rarity: 'epic',      name: 'Hacker',           accent: '#33ff77', blurb: 'Pluie de code vert sur écran noir' },
     { id: 'glitch',     rarity: 'epic',      name: 'Glitch',           accent: '#ff3ec8', blurb: 'Image qui bugue et se décale' },
     { id: 'vhs',        rarity: 'epic',      name: 'VHS',              accent: '#ff6a3d', blurb: 'Cassette rembobinée, image qui saute' },
+    { id: 'neonveines', rarity: 'epic',      name: 'Veines néon',      accent: '#39ffb4', blurb: 'Lumière arc-en-ciel parcourue de veines sombres' },
+    { id: 'encrefluo',  rarity: 'epic',      name: 'Encre fluo',       accent: '#ff3ec8', blurb: 'De l’encre noire qui tourbillonne dans le néon' },
+    { id: 'ectoplasme', rarity: 'epic',      name: 'Ectoplasme',       accent: '#9dff2e', blurb: 'Matière fluo vivante et cellules sombres' },
     // légendaires
     { id: 'nebula',     rarity: 'legendary', name: 'Nébuleuse',        accent: '#b46bff', blurb: 'Gaz cosmiques et étoiles' },
     { id: 'magma',      rarity: 'legendary', name: 'Magma',            accent: '#ff6a1f', blurb: 'Croûte basaltique, fissures de lave' },
@@ -94,7 +106,8 @@
     { id: 'sunshine',   rarity: 'legendary', name: 'Sunshine',         accent: '#ffb020', blurb: 'Un petit soleil, éruptions comprises' },
     { id: 'aze',        rarity: 'legendary', name: 'Aze',              accent: '#3ff0ff', blurb: 'Cyan, magenta, jaune : la signature' },
     { id: 'rypoint',    rarity: 'legendary', name: 'Rypoint',          accent: '#ff7a1a', blurb: 'Le protogen aux yeux d’or' },
-    { id: 'ultrasmoke', rarity: 'legendary', name: 'Ultra smoke',      accent: '#b46bff', blurb: 'Fumée vivante aux reflets néon' }
+    { id: 'ultrasmoke', rarity: 'legendary', name: 'Ultra smoke',      accent: '#b46bff', blurb: 'Fumée vivante aux reflets néon' },
+    { id: 'galaxium',   rarity: 'legendary', name: 'Galaxium',         accent: '#9a7bff', blurb: 'Une galaxie spirale noyée de nébuleuses' }
   ];
   MR.COLLECTIBLE_SKINS = MR.SKINS.filter(function (s) { return !!s.rarity; });
   MR.skin = function (id) {
@@ -114,7 +127,9 @@
     { c: '#e0245e', n: 'Framboise' }, { c: '#93c572', n: 'Pistache' }, { c: '#cc7a22', n: 'Ocre' }, { c: '#6c8cf0', n: 'Bleuet' },
     { c: '#ffaa33', n: 'Mangue' }, { c: '#2a55e0', n: 'Cobalt' }, { c: '#8a1e3f', n: 'Bordeaux' }, { c: '#13b37a', n: 'Jade' },
     { c: '#ff9e7a', n: 'Pêche' }, { c: '#5f7184', n: 'Ardoise' }, { c: '#e5279b', n: 'Fuchsia' }, { c: '#d9b21c', n: 'Moutarde' },
-    { c: '#c8143c', n: 'Cerise' }, { c: '#7d8a2a', n: 'Olive' }, { c: '#b8ecff', n: 'Glacier' }
+    { c: '#c8143c', n: 'Cerise' }, { c: '#7d8a2a', n: 'Olive' }, { c: '#b8ecff', n: 'Glacier' },
+    { c: '#9c5b2e', n: 'Noisette' }, { c: '#4b1f5e', n: 'Aubergine' }, { c: '#1e6b45', n: 'Sapin' }, { c: '#1c2f73', n: 'Marine' },
+    { c: '#ffbfdc', n: 'Dragée' }
   ];
 
   // Effets : « aucun » est toujours libre, le reste se gagne en cartes (rareté indiquée)

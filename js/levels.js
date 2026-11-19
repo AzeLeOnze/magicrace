@@ -3,7 +3,7 @@
   'use strict';
 
   MR.LEVELS = [];
-  // zones : 10 niveaux de course chacune (0.2.4 : seule la Zone Disco existe, niveaux 6 à 10 à venir)
+  // zones : 10 niveaux de course chacune (0.2.5 : seule la Zone Disco existe, niveaux 8 à 10 à venir)
   MR.ZONES = [{ id: 'disco', name: 'Zone Disco', size: 10 }];
   MR.registerLevel = function (def) { if (!def.zone) def.zone = 'disco'; MR.LEVELS.push(def); };
   MR.levelById = function (id) {
@@ -35,6 +35,56 @@
     L.sling = function (ax, ay, bx, by, kick, t) {
       L.segs.push({ ax: ax, ay: ay, bx: bx, by: by, t: t || 8, e: 0.8, kind: 'sling', kick: kick || 380 });
     };
+    // dalle de piste de danse : s'allume et fait sauter les billes sur chaque temps
+    L.pad = function (ax, ay, bx, by, kick) {
+      L.segs.push({ ax: ax, ay: ay, bx: bx, by: by, t: 7, e: 0.3, kind: 'pad', beat: true, kick: kick || 200 });
+    };
+    // piste de danse : rampe découpée en dalles
+    L.danceFloor = function (ax, ay, bx, by, n, kick) {
+      for (let i = 0; i < n; i++) {
+        const t0 = i / n, t1 = (i + 1) / n;
+        L.pad(ax + (bx - ax) * t0, ay + (by - ay) * t0, ax + (bx - ax) * t1, ay + (by - ay) * t1, kick);
+      }
+    };
+    // enceinte : souffle (ax, ay) seulement sur le temps de la musique
+    L.speaker = function (x0, y0, x1, y1, ax, ay, side) {
+      L.zones.push({ x0: x0, y0: y0, x1: x1, y1: y1, ax: ax, ay: ay, hot: 0, beat: true, speaker: side || 1 });
+    };
+    // engrenage : roue dentée qui tourne (moyeu + dents)
+    L.gear = function (cx, cy, R, teeth, omega, phase) {
+      for (let k = 0; k < teeth; k++) {
+        L.arms.push({ px: cx, py: cy, len: R + 26, angle: (phase || 0) + k * MR.TAU / teeth, omega: omega, t: 9, e: 0.4, kind: 'gear' });
+      }
+      L.hubs.push({ x: cx, y: cy, r: R });
+      L.circles.push({ x: cx, y: cy, r: R, e: 0.35, kick: 0, kind: 'gearhub', rot: omega, grip: 0.04 });
+    };
+    // aiguillage : volet qui bascule entre a0 et a1 et envoie les billes d'un côté puis de l'autre
+    L.flap = function (px, py, len, a0, a1, period, off) {
+      const half = period / 2;
+      L.arms.push({ px: px, py: py, len: len, angle: a0, omega: 0, t: 8, e: 0.3, kind: 'flap',
+        cycle: { period: period, closed: half - 0.25, move: 0.25, a0: a0, a1: a1, off: off || 0 } });
+      L.hubs.push({ x: px, y: py, r: 12 });
+      L.circles.push({ x: px, y: py, r: 12, e: 0.4, kick: 0, kind: 'hub' });
+    };
+    // boule à facettes géante qui tourne et renvoie les billes
+    L.mirrorBall = function (x, y, r, rot, kick) {
+      L.circles.push({ x: x, y: y, r: r, e: 0.6, kick: kick || 120, kind: 'turntable', rot: rot, angle: 0, grip: 0.03 });
+    };
+    // platine vinyle : disque qui tourne et entraîne les billes
+    L.vinyl = function (x, y, r, rot) {
+      L.circles.push({ x: x, y: y, r: r, e: 0.3, kick: 0, kind: 'vinyl', rot: rot, angle: 0, grip: 0.06 });
+    };
+    // laser : barrière qui s'ouvre et se ferme en rythme (un temps sur deux)
+    L.laser = function (ax, ay, bx, by, dx, dy, off) {
+      L.sliders.push({ ax: ax, ay: ay, bx: bx, by: by, dx: dx, dy: dy, t: 5, e: 0.2, kind: 'laser', cycle: { move: 0.14 },
+        hold: { beat: true, beatOff: off || 0, every: 4 } });
+    };
+    // auvent d'un demi-tour de rayon 125 centré en (cx, cy) : side = 1 virage à droite, -1 virage à gauche
+    L.hood = function (cx, cy, side, kind) {
+      L.seg(cx - 21.7, cy - 123, cx - side * 130 - (side < 0 ? 22 : 0), cy - 172, { kind: kind || 'wall', e: 0.3 });
+    };
+    // marche d'escalier lumineuse
+    L.step = function (x0, y0, x1, y1) { L.segs.push({ ax: x0, ay: y0, bx: x1, by: y1, t: 7, e: 0.35, kind: 'step' }); };
     // destructeur : lame électrique bleue, la bille qui la touche explose
     L.killer = function (ax, ay, bx, by) {
       L.segs.push({ ax: ax, ay: ay, bx: bx, by: by, t: 6, e: 0.3, kind: 'kill', kill: true });
@@ -709,6 +759,233 @@
       L.saw(X(277.5), Y(482), 32);
       L.sign('LA DERNIÈRE BILLE EN VIE GAGNE', X(277.5), Y(800), 34, '#ffb347');
       L.finish = { y: Infinity, none: true, box: { x0: X(103), x1: X(452), y0: Y(110), y1: Y(620) } };
+      return L;
+    }
+  });
+
+  /* ------------------------------------------------------------------ *
+   * Niveau 6 — Beach Party (0.2.5) : la plage au lever du soleil.
+   * Bols en cascade → pistes de danse en zigzag (les dalles font sauter les billes sur le temps) → engrenage →
+   * aiguillage (picots à gauche, trampolines à droite) → boule à facettes géante → bar (regroupement) → arrivée.
+   * ------------------------------------------------------------------ */
+  MR.registerLevel({
+    id: 'beach-party',
+    num: 6,
+    zone: 'disco',
+    name: 'Beach Party',
+    build: function () {
+      const W = 1600, H = 5330;
+      const L = Builder(W, H);
+      L.gravity = 1000;
+      L.marbleR = 16;
+      L.theme = 'sunrise';
+      const T = MR.L6 || {};
+      L.seg(0, 0, W, 0, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, 0, W, H, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, H, 0, H, { kind: 'frame', t: 10, e: 0.2 });
+      L.seg(0, H, 0, 0, { kind: 'frame', t: 10, e: 0.4 });
+
+      // départ
+      L.seg(560, 80, 560, 300, { kind: 'wall', e: 0.2 });
+      L.seg(1040, 80, 1040, 300, { kind: 'wall', e: 0.2 });
+      L.door(560, 300, 240, 0, Math.PI / 2, 7);
+      L.door(1040, 300, 240, Math.PI, Math.PI / 2, -7);
+      L.spawn = { x0: 586, x1: 1014, y: 277, gap: 34 };
+      L.startView = { x: 800, y: 440 };
+      L.sign('BEACH PARTY', 800, 44, 30, '#ffb347');
+
+      // bols en cascade : chaque bol est percé au fond et déborde sur les côtés
+      const bowl = function (cx, cy, R) {
+        L.arc(cx, cy, R, 14, 76, 6, { kind: 'disco', e: 0.25 });
+        L.arc(cx, cy, R, 104, 166, 6, { kind: 'disco', e: 0.25 });
+      };
+      L.seg(140, 330, 140, 1170, { kind: 'wall', e: 0.35 });
+      L.seg(1460, 330, 1460, 1170, { kind: 'wall', e: 0.35 });
+      bowl(800, 470, 150);
+      bowl(520, 720, 140); bowl(1080, 720, 140);
+      bowl(340, 970, 130); bowl(800, 970, 130); bowl(1260, 970, 130);
+      L.peg(800, 690, 12); L.peg(330, 790, 12); L.peg(1270, 790, 12);
+      L.seg(140, 1160, 700, 1330, { kind: 'funnel', e: 0.25 });
+      L.seg(1460, 1160, 900, 1330, { kind: 'funnel', e: 0.25 });
+
+      // pistes de danse en zigzag : les dalles font sauter les billes sur chaque temps
+      const K = T.pad || 200;
+      L.seg(280, 1198, 280, 1320, { kind: 'wall', e: 0.3 });
+      L.arc(360, 1320, 80, 90, 180, 6, { kind: 'disco', e: 0.2 });
+      L.danceFloor(360, 1400, 1300, 1500, 10, K);
+      L.arc(1370, 1570, 125, -100, 100, 14, { kind: 'wall', e: 0.2 });
+      L.boost(1375, 1694, 1150, 1711, 420);
+      L.danceFloor(1348, 1694, 300, 1774, 10, K);
+      L.arc(290, 1834, 125, 260, 100, 14, { kind: 'wall', e: 0.2 });
+      L.danceFloor(268, 1959, 1300, 2039, 10, K);
+      L.arc(1370, 2109, 125, -100, 100, 14, { kind: 'wall', e: 0.2 });
+      L.boost(1375, 2233, 1150, 2250, 420);
+      L.danceFloor(1348, 2233, 520, 2300, 8, K);
+      L.hood(1370, 1570, 1); L.hood(290, 1834, -1); L.hood(1370, 2109, 1);
+      L.sign('DANCE FLOOR', 800, 1660, 26, '#ff6ac1');
+
+      // engrenage doré qui tourne et lance les billes
+      L.seg(380, 2370, 640, 2440, { kind: 'disco', e: 0.25 });
+      L.seg(300, 1962, 300, 2900, { kind: 'wall', e: 0.35 });
+      L.seg(1300, 2400, 1300, 2900, { kind: 'wall', e: 0.35 });
+      L.gear(800, 2650, 150, 14, 0.85, 0.1);
+      L.seg(300, 2900, 700, 3030, { kind: 'funnel', e: 0.25 });
+      L.seg(1300, 2900, 900, 3030, { kind: 'funnel', e: 0.25 });
+
+      // aiguillage : le volet envoie les billes à gauche (picots) puis à droite (trampolines)
+      L.flap(800, 3085, 120, Math.PI / 2 - 0.7, Math.PI / 2 + 0.7, 2.4, 0);
+      L.seg(200, 3060, 200, 3700, { kind: 'wall', e: 0.35 });
+      L.seg(1400, 3060, 1400, 3700, { kind: 'wall', e: 0.35 });
+      L.seg(800, 3205, 800, 3640, { kind: 'wall', e: 0.35 });
+      for (let row = 0; row < 5; row++) {
+        const y = 3270 + row * 72, off = row % 2 ? 40 : 0;
+        for (let x = 280 + off; x <= 730; x += 80) L.peg(x, y, 11);
+      }
+      L.tramp(830, 3270, 1120, 3335, 200);
+      L.tramp(1375, 3440, 1090, 3505, 200);
+      L.tramp(830, 3590, 1110, 3640, 180);
+      L.seg(200, 3700, 700, 3820, { kind: 'funnel', e: 0.25 });
+      L.seg(1400, 3700, 900, 3820, { kind: 'funnel', e: 0.25 });
+      L.seg(200, 3060, 700, 3030, { kind: 'wall', e: 0.3 });
+      L.seg(1400, 3060, 900, 3030, { kind: 'wall', e: 0.3 });
+
+      // boule à facettes géante
+      L.seg(200, 3830, 200, 4290, { kind: 'wall', e: 0.35 });
+      L.seg(1400, 3830, 1400, 4290, { kind: 'wall', e: 0.35 });
+      L.mirrorBall(800, 4070, 120, 2.2, 110);
+      L.bumper(470, 3990, 26, 230); L.bumper(1130, 3990, 26, 230);
+      L.bumper(560, 4210, 22, 210); L.bumper(1040, 4210, 22, 210);
+
+      // bar : bac de regroupement, puis finale
+      L.seg(200, 4290, 640, 4470, { kind: 'disco', e: 0.25 });
+      L.seg(1400, 4290, 960, 4470, { kind: 'disco', e: 0.25 });
+      L.hold(636, 4478, 964, 4478, -340, 0, { x0: 200, y0: 4280, x1: 1400, y1: 4492 }, { label: { x: 800, y: 4380 } });
+      L.bumper(560, 4650, 24, 220, true); L.bumper(1040, 4650, 24, 220, true); L.bumper(800, 4730, 18, 180, true);
+      const my = 4890;
+      L.calm.push({ x0: 0, y0: 4560, x1: 1600, y1: my + 20 });
+      L.seg(0, 4560, 700, my, { kind: 'funnel', e: 0.25 });
+      L.seg(1600, 4560, 900, my, { kind: 'funnel', e: 0.25 });
+      L.poly([[700, my], [260, my + 130], [260, H]], { kind: 'finish', e: 0.3 });
+      L.poly([[900, my], [1340, my + 130], [1340, H]], { kind: 'finish', e: 0.3 });
+      L.voids.push([[0, 4560], [700, my], [260, my + 130], [260, H], [0, H]]);
+      L.voids.push([[1600, 4560], [900, my], [1340, my + 130], [1340, H], [1600, H]]);
+      L.finish = {
+        y: my + 25,
+        mouth: { x0: 700, x1: 900, y: my },
+        basin: [[700, my], [900, my], [1340, my + 130], [1340, H - 10], [260, H - 10], [260, my + 130]],
+        box: { x0: 260, x1: 1340, y0: my, y1: H - 10 },
+        label: { text: 'ARRIVÉE', x: 800, y: my + 210, size: 64 }
+      };
+      return L;
+    }
+  });
+
+  /* ------------------------------------------------------------------ *
+   * Niveau 7 — Le Club (0.2.5) : dans la discothèque, tout bouge en rythme.
+   * Escaliers lumineux → platines vinyles → fosse aux enceintes (souffle sur le temps) →
+   * rampes coupées par des lasers en rythme → piste de danse finale sous la boule à facettes → arrivée.
+   * ------------------------------------------------------------------ */
+  MR.registerLevel({
+    id: 'le-club',
+    num: 7,
+    zone: 'disco',
+    name: 'Le Club',
+    build: function () {
+      const W = 1600, H = 4250, o = 190;
+      const L = Builder(W, H);
+      L.gravity = 1000;
+      L.marbleR = 16;
+      L.theme = 'club';
+      const T = MR.L7 || {};
+      const mir = function (x) { return W - x; };
+      L.seg(0, 0, W, 0, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, 0, W, H, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, H, 0, H, { kind: 'frame', t: 10, e: 0.2 });
+      L.seg(0, H, 0, 0, { kind: 'frame', t: 10, e: 0.4 });
+
+      // départ
+      L.seg(560, 80, 560, 300, { kind: 'wall', e: 0.2 });
+      L.seg(1040, 80, 1040, 300, { kind: 'wall', e: 0.2 });
+      L.door(560, 300, 240, 0, Math.PI / 2, 7);
+      L.door(1040, 300, 240, Math.PI, Math.PI / 2, -7);
+      L.spawn = { x0: 586, x1: 1014, y: 277, gap: 34 };
+      L.startView = { x: 800, y: 460 };
+      L.sign('LE CLUB', 800, 44, 32, '#ff3ea5');
+
+      // escaliers lumineux de part et d'autre (marches légèrement penchées vers l'extérieur)
+      L.seg(690, 660, 800, 600, { kind: 'disco', e: 0.3 });
+      L.seg(910, 660, 800, 600, { kind: 'disco', e: 0.3 });
+      for (let k = 0; k < 5; k++) {
+        const x = 690 - 90 * k, y = 660 + 45 * k;
+        L.step(x, y, x - 90, y + 9); L.step(mir(x), y, mir(x - 90), y + 9);
+        L.step(x - 90, y + 9, x - 90, y + 45); L.step(mir(x - 90), y + 9, mir(x - 90), y + 45);
+      }
+      L.seg(100, 380, 100, 1010, { kind: 'wall', e: 0.35 }); L.seg(mir(100), 380, mir(100), 1010, { kind: 'wall', e: 0.35 });
+      L.seg(100, 1010, 720, 1190, { kind: 'disco', e: 0.25 }); L.seg(mir(100), 1010, mir(720), 1190, { kind: 'disco', e: 0.25 });
+      // à partir d'ici, tout est décalé de o vers le bas
+      const Ls = L.seg, Lv = L.vinyl, Lsp = L.speaker, Ldf = L.danceFloor, Lla = L.laser, Lar = L.arc, Lbo = L.boost, Lsi = L.sign, Lmb = L.mirrorBall;
+      L.seg = function (ax, ay, bx, by, opt) { Ls(ax, ay + o, bx, by + o, opt); };
+      L.vinyl = function (x, y, r, rot) { Lv(x, y + o, r, rot); };
+      L.speaker = function (x0, y0, x1, y1, ax, ay) { Lsp(x0, y0 + o, x1, y1 + o, ax, ay); };
+      L.danceFloor = function (ax, ay, bx, by, n, k) { Ldf(ax, ay + o, bx, by + o, n, k); };
+      L.laser = function (ax, ay, bx, by, dx, dy, off) { Lla(ax, ay + o, bx, by + o, dx, dy, off); };
+      // (L.arc passe par L.seg, déjà décalé)
+      L.boost = function (ax, ay, bx, by, pw) { Lbo(ax, ay + o, bx, by + o, pw); };
+      L.sign = function (t, x, y, sz, c) { Lsi(t, x, y + o, sz, c); };
+      L.mirrorBall = function (x, y, r, rot, k) { Lmb(x, y + o, r, rot, k); };
+
+      // platines : deux vinyles qui tournent en sens inverse
+      L.vinyl(800, 1185, 135, T.rot || 1.5);
+      L.seg(180, 1080, 180, 1300, { kind: 'wall', e: 0.35 }); L.seg(mir(180), 1080, mir(180), 1300, { kind: 'wall', e: 0.35 });
+      L.seg(180, 1300, 700, 1440, { kind: 'disco', e: 0.25 }); L.seg(mir(180), 1300, mir(700), 1440, { kind: 'disco', e: 0.25 });
+      L.vinyl(800, 1620, 135, -(T.rot || 1.5));
+      L.seg(180, 1500, 180, 1740, { kind: 'wall', e: 0.35 }); L.seg(mir(180), 1500, mir(180), 1740, { kind: 'wall', e: 0.35 });
+      L.seg(180, 1740, 700, 1880, { kind: 'disco', e: 0.25 }); L.seg(mir(180), 1740, mir(700), 1880, { kind: 'disco', e: 0.25 });
+      L.sign('PLATINES', 800, 960, 26, '#3ff0ff');
+
+      // fosse aux enceintes : elles soufflent vers le centre sur chaque temps, le sol fait danser
+      L.seg(180, 1960, 180, 2400, { kind: 'wall', e: 0.35 }); L.seg(mir(180), 1960, mir(180), 2400, { kind: 'wall', e: 0.35 });
+      L.speaker(190, 2080, 560, 2380, T.blast || 3000, -600);
+      L.speaker(mir(560), 2080, mir(190), 2380, -(T.blast || 3000), -600);
+      L.danceFloor(180, 2400, 700, 2500, 6, T.pad || 220);
+      L.danceFloor(mir(180), 2400, mir(700), 2500, 6, T.pad || 220);
+
+      // rampes coupées par des lasers qui s'ouvrent un temps sur deux
+      L.seg(720, 2597.8, 1300, 2640, { kind: 'ramp', e: 0.25 });
+      L.seg(640, 2492.5, 720, 2597.8, { kind: 'disco', e: 0.2 });
+      L.boost(800, 2603.6, 1040, 2621.1, T.lb1 || 260);
+      L.arc(1370, 2710, 125, -100, 100, 14, { kind: 'wall', e: 0.2 });
+      L.boost(1375, 2834, 1150, 2851, 420);
+      L.seg(1348, 2834, 300, 2914, { kind: 'ramp', e: 0.25 });
+      L.boost(950, 2864.4, 712, 2882.6, T.lb || 320);
+      L.laser(700, 2788, 700, 2875, 0, -108, 2);
+      L.arc(290, 2974, 125, 260, 100, 14, { kind: 'wall', e: 0.2 });
+      L.seg(268, 3099, 1300, 3179, { kind: 'ramp', e: 0.25 });
+      L.boost(750, 3136.4, 990, 3155, T.lb || 320);
+      L.laser(1000, 3062, 1000, 3148, 0, -104, 0);
+      L.hood(1370, 2710, 1); L.hood(290, 2974, -1);
+      L.sign('LASERS', 640, 2700, 26, '#ff5a5a');
+
+      // piste de danse finale sous la boule à facettes
+      L.seg(1300, 3179, 1300, 3190, { kind: 'wall', e: 0.3 });
+      L.danceFloor(100, 3300, 700, 3560, 8, T.pad2 || 200);
+      L.danceFloor(1500, 3300, 900, 3560, 8, T.pad2 || 200);
+      L.seg(100, 3180, 100, 3300, { kind: 'wall', e: 0.3 }); L.seg(1500, 2860, 1500, 3300, { kind: 'wall', e: 0.3 });
+      L.mirrorBall(800, 3390, 72, 2.4, 140);
+      L.seg = Ls; L.vinyl = Lv; L.speaker = Lsp; L.danceFloor = Ldf; L.laser = Lla; L.arc = Lar; L.boost = Lbo; L.sign = Lsi; L.mirrorBall = Lmb;
+      const my = 3560 + o;
+      L.calm.push({ x0: 100, y0: 3300 + o, x1: 1500, y1: my + 20 });
+      L.poly([[700, my], [260, my + 130], [260, H]], { kind: 'finish', e: 0.3 });
+      L.poly([[900, my], [1340, my + 130], [1340, H]], { kind: 'finish', e: 0.3 });
+      L.voids.push([[0, 3300 + o], [100, 3300 + o], [700, my], [260, my + 130], [260, H], [0, H]]);
+      L.voids.push([[1600, 3300 + o], [1500, 3300 + o], [900, my], [1340, my + 130], [1340, H], [1600, H]]);
+      L.finish = {
+        y: my + 25,
+        mouth: { x0: 700, x1: 900, y: my },
+        basin: [[700, my], [900, my], [1340, my + 130], [1340, H - 10], [260, H - 10], [260, my + 130]],
+        box: { x0: 260, x1: 1340, y0: my, y1: H - 10 },
+        label: { text: 'ARRIVÉE', x: 800, y: my + 210, size: 64 }
+      };
       return L;
     }
   });

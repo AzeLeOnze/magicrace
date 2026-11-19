@@ -1211,6 +1211,315 @@ void main(){
   return col;
 }`;
 
+  /* ================= 0.2.5 : 4 peu communes ================= */
+  SKINS.yinyang = SIG + `{
+  vec2 q = s.xy / 0.93;
+  float e = 0.014;
+  float dark = smoothstep(-e, e, q.x);
+  float top = length(q - vec2(0.0, 0.5)), bot = length(q + vec2(0.0, 0.5));
+  dark = mix(dark, 1.0, smoothstep(0.5 + e, 0.5 - e, top));
+  dark = mix(dark, 0.0, smoothstep(0.5 + e, 0.5 - e, bot));
+  dark = mix(dark, 0.0, smoothstep(0.14 + e, 0.14 - e, top));
+  dark = mix(dark, 1.0, smoothstep(0.14 + e, 0.14 - e, bot));
+  vec3 col = mix(vec3(0.96, 0.94, 0.9), vec3(0.035, 0.035, 0.05), dark);
+  float rl = length(q);
+  col = mix(col, vec3(0.78, 0.1, 0.12), smoothstep(0.99, 1.02, rl));
+  col = mix(col, vec3(0.02), smoothstep(0.03, 0.0, abs(rl - 1.0)));
+  col *= 0.5 + 0.6 * diff;
+  col += vec3(1.0) * (spec * 0.9 + specW * 0.08) + vec3(0.9, 0.9, 1.0) * fres * 0.3 + vec3(1.0) * glassArc(p) * 0.25;
+  return col;
+}`;
+
+  SKINS.tennis = SIG + `{
+  float lat = asin(clamp(s.y, -1.0, 1.0));
+  float lon = atan(s.z, s.x);
+  float d = abs(lat - 0.62 * sin(2.0 * lon + u_seed * 3.0));
+  float seam = smoothstep(0.075, 0.045, d);
+  float groove = smoothstep(0.13, 0.07, d) - seam;
+  float fuzz = noise(s * 38.0 + u_seed * 9.0) * 0.6 + noise(s * 90.0) * 0.4;
+  vec3 col = mix(vec3(0.72, 0.88, 0.1), vec3(0.88, 1.0, 0.3), fuzz);
+  col *= 1.0 - groove * 0.25;
+  col = mix(col, vec3(0.97, 0.97, 0.92), seam);
+  col *= 0.42 + 0.7 * diff;
+  col += vec3(0.9, 1.0, 0.6) * fres * 0.35 + vec3(1.0) * specW * 0.05;
+  return col;
+}`;
+
+  SKINS.basket = SIG + `{
+  float w = 0.03;
+  float d1 = abs(s.x), d2 = abs(s.y);
+  float d3 = abs(abs(s.x) - (0.8 - 0.36 * s.y * s.y));
+  float line = smoothstep(w, w * 0.4, min(min(d1, d2), d3));
+  vec3 cp = s * 26.0 + u_seed * 5.0;
+  float peb = smoothstep(0.32, 0.12, length(fract(cp) - 0.5));
+  vec3 col = mix(vec3(0.85, 0.36, 0.09), vec3(0.95, 0.47, 0.14), peb * 0.6);
+  col *= 0.9 + 0.15 * noise(s * 6.0 + u_seed);
+  col = mix(col, vec3(0.06, 0.03, 0.02), line);
+  col *= 0.45 + 0.7 * diff;
+  col += vec3(1.0, 0.85, 0.7) * (spec * 0.25 + specW * 0.06) + vec3(1.0, 0.6, 0.3) * fres * 0.25;
+  return col;
+}`;
+
+  SKINS.coccinelle = SIG + `{
+  vec2 q = s.xy;
+  vec3 col = vec3(0.86, 0.07, 0.05) * (0.9 + 0.15 * noise(s * 8.0 + u_seed));
+  float head = smoothstep(-0.012, 0.012, q.y - (0.6 - 0.25 * q.x * q.x));
+  float mid = smoothstep(0.022, 0.01, abs(q.x)) * step(q.y, 0.6);
+  float spots = 0.0;
+  for (int i = 0; i < 3; i++){
+    vec2 c = i == 0 ? vec2(0.36, 0.22) : (i == 1 ? vec2(0.46, -0.25) : vec2(0.2, -0.62));
+    float rr = i == 2 ? 0.13 : 0.16;
+    spots = max(spots, smoothstep(rr + 0.012, rr - 0.012, length(vec2(abs(q.x), q.y) - c)));
+  }
+  col = mix(col, vec3(0.03, 0.02, 0.02), max(max(head, mid), spots));
+  vec2 ex = vec2(abs(q.x) - 0.2, q.y - 0.76);
+  col = mix(col, vec3(0.95), smoothstep(0.065, 0.05, length(ex)) * head);
+  col *= 0.45 + 0.7 * diff;
+  col += vec3(1.0) * (spec * 1.1 + specW * 0.1) + vec3(1.0, 0.5, 0.4) * fres * 0.3 + vec3(1.0) * glassArc(p) * 0.3;
+  return col;
+}`;
+
+  /* ================= 0.2.5 : 5 rares ================= */
+  SKINS.donut = SIG + `{
+  vec2 q = s.xy;
+  float rl = length(q);
+  float a = atan(q.y, q.x);
+  float edgeI = 0.78 + 0.05 * sin(a * 7.0 + u_seed * 6.0) + 0.025 * sin(a * 13.0 + 1.0);
+  float icing = smoothstep(edgeI + 0.015, edgeI - 0.015, rl) * smoothstep(0.27, 0.3, rl);
+  vec3 dough = mix(vec3(0.88, 0.58, 0.27), vec3(0.62, 0.35, 0.14), clamp(smoothstep(0.75, 1.0, rl) + 0.3 * fbm3(s * 6.0), 0.0, 1.0));
+  float hole = smoothstep(0.24, 0.2, rl);
+  dough = mix(dough, vec3(0.97, 0.76, 0.46), smoothstep(0.3, 0.22, rl) * (1.0 - hole));
+  vec3 col = mix(dough, vec3(0.2, 0.1, 0.05), hole);
+  vec3 ic = vec3(1.0, 0.45, 0.68) * (0.95 + 0.1 * noise(s * 10.0));
+  col = mix(col, ic, icing);
+  vec2 g = q * 9.0 + u_seed * 7.0; vec2 c = floor(g); vec2 f = fract(g) - 0.5;
+  float h = hash13(vec3(c, 3.0));
+  float an = h * 12.0;
+  vec2 u = vec2(cos(an) * f.x + sin(an) * f.y, -sin(an) * f.x + cos(an) * f.y);
+  float spr = step(0.45, h) * smoothstep(0.05, 0.0, max(abs(u.x) - 0.2, abs(u.y) - 0.045)) * icing;
+  vec3 sc = pal(hash13(vec3(c, 9.0)), vec3(0.65), vec3(0.4), vec3(1.0), vec3(0.0, 0.33, 0.67));
+  col = mix(col, sc, spr);
+  col *= 0.5 + 0.6 * diff;
+  col += vec3(1.0) * (spec * 0.8 + specW * 0.08) * (0.3 + 0.7 * icing) + vec3(1.0, 0.8, 0.85) * fres * 0.25;
+  return col;
+}`;
+
+  SKINS.cookie = SIG + `{
+  vec3 q = s * 2.2 + u_seed * 5.0;
+  float f = fbm(q * 1.5);
+  vec3 col = mix(vec3(0.86, 0.6, 0.3), vec3(0.7, 0.44, 0.2), smoothstep(0.35, 0.7, f));
+  col = mix(col, vec3(0.5, 0.3, 0.12), smoothstep(0.62, 0.8, fbm3(q * 3.0 + 7.0)) * 0.6);
+  vec3 v = voronoi(q * 1.6);
+  float crack = smoothstep(0.035, 0.0, v.y - v.x) * smoothstep(0.45, 0.6, fbm3(q * 2.0 + 3.0));
+  col = mix(col, vec3(0.42, 0.24, 0.1), crack * 0.7);
+  vec3 cp = s * 2.5 + u_seed * 9.0; vec3 cc = floor(cp); float h = hash13(cc);
+  vec3 fr = fract(cp) - 0.5 - (hash33(cc) - 0.5) * 0.25;
+  float chipD = length(fr) + 0.08 * (noise(s * 26.0 + h * 10.0) - 0.5);
+  float chip = step(0.2, h) * smoothstep(0.33, 0.29, chipD);
+  vec3 choc = vec3(0.17, 0.07, 0.03) + vec3(0.3, 0.17, 0.09) * smoothstep(0.26, 0.0, length(fr - vec3(-0.08, 0.09, 0.06)));
+  col = mix(col, choc, chip);
+  col *= 0.9 + 0.18 * noise(s * 40.0);
+  col *= 0.45 + 0.7 * diff;
+  col += vec3(1.0, 0.9, 0.7) * (specW * 0.08 + spec * 0.35 * chip) + vec3(1.0, 0.75, 0.45) * fres * 0.25;
+  return col;
+}`;
+
+  // Le visage reste tourné vers nous (comme Rypoint) et se balance quand la bille roule.
+  SKINS.creepsmile = SIG + `{
+  float wob = sin(u_angle) * 0.18;
+  float cw = cos(wob), sw = sin(wob);
+  vec2 q = vec2(cw * p.x - sw * p.y, sw * p.x + cw * p.y);
+  float grime = fbm3(vec3(q * 4.0, u_seed * 5.0));
+  vec3 col = mix(vec3(1.0, 0.86, 0.12), vec3(0.82, 0.62, 0.05), smoothstep(0.4, 0.75, grime));
+  col = mix(col, vec3(0.5, 0.36, 0.02), smoothstep(0.55, 1.0, length(q)) * 0.5);
+  float eyes = 0.0, pup = 0.0, bag = 0.0;
+  for (int i = 0; i < 2; i++){
+    float sx = i == 0 ? -1.0 : 1.0;
+    vec2 e = q - vec2(0.3 * sx, 0.24);
+    float tilt = 0.35 * sx;
+    vec2 er = vec2(e.x * cos(tilt) - e.y * sin(tilt), e.x * sin(tilt) + e.y * cos(tilt));
+    eyes = max(eyes, smoothstep(1.06, 0.94, length(er / vec2(0.15, 0.21))));
+    bag = max(bag, smoothstep(1.7, 1.05, length((e - vec2(0.0, -0.06)) / vec2(0.2, 0.26))));
+    vec2 look = vec2(0.035 * sin(u_time * 0.7 + u_seed * 9.0), -0.02);
+    float pd = length(e - look);
+    pup += smoothstep(0.045, 0.02, pd) + smoothstep(0.12, 0.0, pd) * 0.35;
+  }
+  col = mix(col, col * vec3(0.6, 0.45, 0.25), bag * 0.6);
+  col = mix(col, vec3(0.02, 0.0, 0.0), eyes);
+  vec2 c1 = vec2(0.0, 0.15), c2 = vec2(0.0, 0.45);
+  float d1 = length(q - c1), d2 = length(q - c2);
+  float mouth = smoothstep(0.625, 0.61, d1) * smoothstep(0.71, 0.725, d2);
+  float du = d2 - 0.72, dl = 0.62 - d1;
+  float tu = 1.0 - abs(fract(q.x * 7.5) - 0.5) * 2.0;
+  float tl = 1.0 - abs(fract(q.x * 7.5 + 0.5) - 0.5) * 2.0;
+  float teeth = max(step(du, 0.08 * tu), step(dl, 0.065 * tl));
+  vec3 mc = mix(vec3(0.16, 0.0, 0.02), vec3(0.95, 0.92, 0.78), teeth);
+  col = mix(col, mc, mouth);
+  float o1 = smoothstep(0.02, 0.0, abs(d1 - 0.618)) * step(0.715, d2);
+  float o2 = smoothstep(0.02, 0.0, abs(d2 - 0.717)) * step(d1, 0.622);
+  col = mix(col, vec3(0.25, 0.1, 0.0), max(o1, o2) * 0.9);
+  col *= 0.5 + 0.6 * diff;
+  float flick = 0.75 + 0.25 * sin(u_time * 9.0 + u_seed * 20.0) * sin(u_time * 2.3);
+  col += vec3(1.0, 0.08, 0.04) * pup * eyes * 1.6 * flick;
+  col += vec3(1.0) * spec * 0.9 + vec3(1.0) * glassArc(p) * 0.25 + vec3(1.0, 0.7, 0.2) * fres * 0.3;
+  return col;
+}`;
+
+  SKINS.star = `
+float sdStar5(vec2 p, float r, float rf){
+  vec2 k1 = vec2(0.809016994, -0.587785252);
+  vec2 k2 = vec2(-k1.x, k1.y);
+  p.x = abs(p.x);
+  p -= 2.0 * max(dot(k1, p), 0.0) * k1;
+  p -= 2.0 * max(dot(k2, p), 0.0) * k2;
+  p.x = abs(p.x);
+  p.y -= r;
+  vec2 ba = rf * vec2(-k1.y, k1.x) - vec2(0.0, 1.0);
+  float h = clamp(dot(p, ba) / dot(ba, ba), 0.0, r);
+  return length(p - ba * h) * sign(p.y * ba.x - p.x * ba.y);
+}
+` + SIG + `{
+  vec2 q = s.xy - vec2(0.0, -0.03);
+  float d = sdStar5(q, 0.8, 0.45);
+  float star = smoothstep(0.015, -0.015, d);
+  float a = atan(q.x, q.y);
+  float la = mod(a + PI / 5.0, 2.0 * PI / 5.0) - PI / 5.0;
+  float facet = step(0.0, la);
+  vec3 bg = mix(vec3(0.03, 0.05, 0.2), vec3(0.12, 0.05, 0.3), smoothstep(-0.8, 0.9, s.y));
+  vec3 sp = s * 12.0 + u_seed * 17.0; vec3 c = floor(sp); float h = hash13(c);
+  bg += vec3(0.9, 0.9, 1.0) * step(0.75, h) * smoothstep(0.08, 0.0, length(fract(sp) - 0.5)) * (0.5 + 0.5 * sin(u_time * 3.0 + h * 50.0));
+  vec3 gold = mix(vec3(1.0, 0.72, 0.12), vec3(1.0, 0.93, 0.55), facet);
+  gold *= 0.8 + 0.4 * smoothstep(0.0, -0.2, d);
+  vec3 col = mix(bg, gold, star);
+  col = mix(col, vec3(1.0, 0.98, 0.85), smoothstep(0.02, 0.0, abs(d + 0.005)) * 0.6);
+  col *= 0.55 + 0.55 * diff;
+  col += vec3(1.0, 0.8, 0.3) * smoothstep(0.16, 0.0, d) * (1.0 - star) * 0.5;
+  float tw = pow(max(sin(u_time * 2.2 + u_seed * 9.0), 0.0), 12.0);
+  col += vec3(1.0) * tw * smoothstep(0.06, 0.0, length(q - vec2(-0.18, 0.3))) * star;
+  col += vec3(1.0) * spec * 1.2 + vec3(1.0) * glassArc(p) * 0.35 + vec3(0.6, 0.6, 1.0) * fres * 0.4;
+  return col;
+}`;
+
+  // Une petite Saturne dans une bille de verre : la moitié arrière de l'anneau passe derrière la planète.
+  SKINS.saturne = SIG + `{
+  vec2 q = s.xy;
+  float tilt = 0.38;
+  vec2 rq = vec2(cos(tilt) * q.x - sin(tilt) * q.y, sin(tilt) * q.x + cos(tilt) * q.y);
+  vec3 col = vec3(0.02, 0.02, 0.07) + vec3(0.12, 0.05, 0.22) * smoothstep(0.35, 0.8, fbm3(vec3(q * 2.5, u_seed * 4.0)));
+  vec3 st = s * 13.0 + u_seed * 11.0; vec3 c = floor(st); float h = hash13(c);
+  col += vec3(0.9, 0.9, 1.0) * step(0.78, h) * smoothstep(0.08, 0.0, length(fract(st) - 0.5)) * (0.6 + 0.4 * sin(u_time * 2.5 + h * 40.0));
+  float PR = 0.5;
+  float pl = length(rq) / PR;
+  float planet = smoothstep(1.0, 0.95, pl);
+  vec3 pn = vec3(rq / PR, sqrt(max(0.0, 1.0 - min(pl * pl, 1.0))));
+  float pd = max(dot(pn, normalize(vec3(-0.5, 0.55, 0.65))), 0.0);
+  float bands = pn.y * 5.5 + 0.3 * sin(pn.x * 3.0 + u_seed * 5.0) + 0.5 * fbm3(vec3(pn.xy * vec2(1.5, 6.0), u_seed * 3.0));
+  vec3 pc = pal(bands * 0.17 + 0.1, vec3(0.82, 0.6, 0.36), vec3(0.22, 0.18, 0.14), vec3(1.0), vec3(0.0, 0.12, 0.25));
+  pc *= 0.22 + 0.98 * pd;
+  float e = length(rq * vec2(1.0, 3.2));
+  float ring = smoothstep(0.62, 0.66, e) * smoothstep(0.97, 0.93, e);
+  ring *= 1.0 - smoothstep(0.02, 0.0, abs(e - 0.8)) * 0.85;
+  vec3 rc = mix(vec3(1.0, 0.93, 0.76), vec3(0.78, 0.62, 0.45), smoothstep(0.66, 0.95, e)) * (0.9 + 0.1 * sin(e * 60.0));
+  float behind = step(0.0, rq.y);
+  col = mix(col, rc * 0.8, ring * behind * (1.0 - planet));
+  float se = length((rq - vec2(0.0, 0.07)) * vec2(1.0, 3.2));
+  pc *= 1.0 - smoothstep(0.62, 0.66, se) * smoothstep(0.97, 0.93, se) * behind * 0.55;
+  col = mix(col, pc, planet);
+  col = mix(col, rc, ring * (1.0 - behind));
+  col *= 0.75 + 0.35 * diff;
+  col += vec3(1.0) * spec * 1.1 + vec3(1.0) * glassArc(p) * 0.35 + vec3(0.6, 0.6, 1.0) * fres * 0.45;
+  return col;
+}`;
+
+  /* ================= 0.2.5 : 3 épiques néon ================= */
+  SKINS.neonveines = SIG + `{
+  float t = u_time * 0.12;
+  vec3 q = s * 1.8 + u_seed * 6.0;
+  vec3 w = vec3(fbm3(q + vec3(0.0, t, 0.0)), fbm3(q + vec3(5.2, -t, 1.3)), fbm3(q + vec3(1.7, 9.2, t)));
+  float f = fbm(q * 1.3 + w * 2.0);
+  float ridge = abs(f - 0.5);
+  float ridge2 = abs(fbm3(q * 2.6 + w * 3.0 + 11.0) - 0.5);
+  float vein = max(smoothstep(0.05, 0.012, ridge), smoothstep(0.035, 0.008, ridge2) * 0.85);
+  vec3 neon = pal(w.x * 1.6 + s.y * 0.35 + t * 0.8 + u_seed, vec3(0.55), vec3(0.5), vec3(1.0), vec3(0.0, 0.33, 0.67));
+  vec3 col = neon * (0.75 + 0.75 * pow(max(0.0, 1.0 - r), 1.2));
+  float halo = smoothstep(0.13, 0.04, ridge) - smoothstep(0.05, 0.012, ridge);
+  col += neon * halo * 0.6;
+  col = mix(col, vec3(0.015, 0.0, 0.03), vein * 0.95);
+  col *= 0.75 + 0.35 * diff;
+  col += vec3(1.0) * spec * 1.3 + vec3(1.0) * glassArc(p) * 0.35 + neon * fres * 0.9;
+  return col;
+}`;
+
+  SKINS.encrefluo = SIG + `{
+  float t = u_time * 0.18;
+  vec3 q = s * 1.5 + u_seed * 4.0;
+  vec3 w = vec3(fbm3(q + vec3(t, 0.0, 0.0)), fbm3(q + vec3(3.1, 7.4, -t)), fbm3(q + vec3(6.3, 2.2, t * 0.7)));
+  float f = fbm(q + 2.6 * w);
+  float ink = smoothstep(0.5, 0.56, f);
+  float edge = smoothstep(0.06, 0.0, abs(f - 0.53));
+  vec3 neon = mix(vec3(1.0, 0.15, 0.75), vec3(0.15, 0.9, 1.0), smoothstep(0.3, 0.7, w.y));
+  neon = mix(neon, vec3(1.0, 0.85, 0.2), smoothstep(0.62, 0.8, w.z) * 0.7);
+  vec3 col = neon * (0.8 + 0.8 * pow(max(0.0, 1.0 - r), 1.3));
+  float swirl = 0.5 + 0.5 * sin(f * 40.0 + w.x * 12.0);
+  col = mix(col, vec3(0.02, 0.01, 0.05) + neon * 0.06 * swirl, ink);
+  col += neon * edge * 1.1 + vec3(1.0) * edge * 0.25;
+  col *= 0.75 + 0.35 * diff;
+  col += vec3(1.0) * spec * 1.3 + vec3(1.0) * glassArc(p) * 0.35 + neon * fres * 0.8;
+  return col;
+}`;
+
+  SKINS.ectoplasme = SIG + `{
+  float t = u_time * 0.2;
+  vec3 q = s * 2.4 + u_seed * 5.0;
+  vec3 wp = q + 0.6 * vec3(fbm3(q + t), fbm3(q + 4.0 - t), fbm3(q + 9.0));
+  vec3 v = voronoi(wp);
+  float cellE = v.y - v.x;
+  vec3 neon = mix(vec3(0.55, 1.0, 0.12), vec3(0.1, 1.0, 0.85), smoothstep(0.3, 0.7, fbm3(q * 0.7 + t)));
+  neon = mix(neon, vec3(1.0, 0.95, 0.3), smoothstep(0.65, 0.85, v.z) * 0.5);
+  float blob = smoothstep(0.06, 0.22, cellE);
+  vec3 col = neon * (0.9 + 0.7 * pow(max(0.0, 1.0 - r), 1.3)) * (1.0 + 0.4 * smoothstep(0.08, 0.0, cellE));
+  vec3 dark = vec3(0.02, 0.04, 0.03) + vec3(0.08, 0.0, 0.12) * fbm3(wp * 3.0);
+  col = mix(col, dark, blob * 0.93);
+  col *= 0.75 + 0.35 * diff;
+  col += vec3(1.0) * spec * 1.3 + vec3(1.0) * glassArc(p) * 0.3 + neon * fres * 0.9;
+  return col;
+}`;
+
+  /* ================= 0.2.5 : Galaxium (légendaire) ================= */
+  SKINS.galaxium = SIG + `{
+  float t = u_time;
+  vec2 q = s.xy;
+  float spin = t * 0.12 + u_seed * TAU;
+  float cs = cos(spin), sn = sin(spin);
+  vec2 g = vec2(cs * q.x - sn * q.y, sn * q.x + cs * q.y) * vec2(1.0, 1.28);
+  float rad = length(g);
+  float ang = atan(g.y, g.x);
+  float sp = ang - log(rad + 0.04) * 2.1;
+  float arm = 0.5 + 0.5 * cos(2.0 * sp);
+  float clump = fbm3(vec3(g * 5.0, u_seed * 4.0 + t * 0.03));
+  float neb = fbm(vec3(q * 2.2, u_seed * 7.0 + t * 0.02));
+  float armM = pow(arm, 2.2) * smoothstep(1.05, 0.15, rad) * (0.55 + 0.9 * clump);
+  float dust = pow(0.5 + 0.5 * cos(2.0 * sp - 0.9), 6.0) * smoothstep(0.08, 0.3, rad) * smoothstep(1.0, 0.4, rad);
+  vec3 col = vec3(0.02, 0.01, 0.06);
+  col += vec3(0.6, 0.12, 0.7) * smoothstep(0.4, 0.8, neb) * 0.75;
+  col += vec3(0.08, 0.3, 0.85) * smoothstep(0.45, 0.85, fbm3(vec3(q * 3.0 + 5.0, t * 0.02))) * 0.65;
+  vec3 armCol = mix(vec3(0.4, 0.62, 1.0), vec3(0.85, 0.5, 1.0), smoothstep(0.2, 0.9, rad));
+  float soft = pow(arm, 0.8) * smoothstep(1.15, 0.1, rad);
+  col += mix(vec3(0.35, 0.2, 0.8), vec3(0.9, 0.3, 0.75), neb) * soft * 0.45;
+  col += armCol * armM * 1.6;
+  col += vec3(1.0, 0.35, 0.7) * armM * smoothstep(0.55, 0.75, clump) * 1.7;
+  col *= 1.0 - dust * 0.65;
+  col += vec3(1.0, 0.92, 0.75) * exp(-rad * rad * 24.0) * 1.4 + vec3(1.0, 0.6, 0.55) * exp(-rad * rad * 5.0) * 0.4;
+  vec3 st = s * 14.0 + u_seed * 21.0; vec3 c = floor(st); float h = hash13(c);
+  vec3 fr = fract(st) - 0.5 - (hash33(c + 1.7) - 0.5) * 0.6;
+  col += vec3(0.9, 0.95, 1.0) * step(0.72, h) * smoothstep(0.07, 0.0, length(fr)) * (0.5 + 0.5 * sin(t * 3.0 + h * 80.0)) * 1.5;
+  vec3 st2 = s * 30.0 + u_seed * 9.0; vec3 c2 = floor(st2);
+  col += vec3(0.85, 0.9, 1.0) * armM * step(0.8, hash13(c2)) * smoothstep(0.12, 0.0, length(fract(st2) - 0.5)) * 0.9;
+  col *= 0.8 + 0.3 * diff;
+  col += vec3(1.0) * spec * 1.2 + vec3(0.85, 0.8, 1.0) * glassArc(p) * 0.3 + vec3(0.55, 0.4, 1.0) * fres * 0.8;
+  return col;
+}`;
+
   const G = { ok: false, canvas: null, ATLAS_W: ATLAS_W, ATLAS_H: ATLAS_H, MAIN_H: MAIN_H, ids: Object.keys(SKINS) };
   let gl = null, vsh = null;
   const progs = {};

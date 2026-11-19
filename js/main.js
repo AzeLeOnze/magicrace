@@ -340,11 +340,26 @@
   function inBox(m, z) { return m.x > z.x0 && m.x < z.x1 && m.y > z.y0 && m.y < z.y1; }
 
   // portes de regroupement : fermées tant que le gros du peloton n'est pas arrivé (ou qu'on attend depuis trop longtemps)
+  // temps musical commun : dalles, enceintes et lasers suivent la musique (ou une horloge à 116 BPM en simulation)
+  function setBeat() {
+    const W = G.world;
+    const bt = G.simulating || !MR.Audio.ready() ? (G.state === 'racing' ? G.raceTime : G.time) * 116 / 60 : MR.Audio.beat();
+    const bn = Math.floor(bt);
+    W.beatN = bn;
+    W.beatOn = bt - bn < 0.16;
+    // lasers en rythme : fermés un temps sur « every »
+    for (let k = 0; k < W.sliders.length; k++) {
+      const h = W.sliders[k].hold;
+      if (h && h.beat) h.open = ((bn + (h.beatOff || 0)) % (h.every || 2)) !== 0;
+    }
+  }
+  G.setBeat = setBeat;
+
   function updateHolds() {
     const sl = G.world.sliders;
     for (let k = 0; k < sl.length; k++) {
       const s = sl[k], h = s.hold;
-      if (!h || h.open) continue;
+      if (!h || h.open || h.beat) continue;
       let inside = 0, behind = 0;
       for (let i = 0; i < G.marbles.length; i++) {
         const m = G.marbles[i];
@@ -771,6 +786,7 @@
       acc += dt;
       let n = 0;
       while (acc >= FIXED && n < 12) {
+        setBeat();
         for (let i = 0; i < SUB; i++) MR.Physics.step(G.world, FIXED / SUB);
         acc -= FIXED; n++;
       }
@@ -798,6 +814,7 @@
     const steps = Math.round(seconds / FIXED);
     const holds = [];
     for (let s = 0; s < steps; s++) {
+      setBeat();
       for (let i = 0; i < SUB; i++) MR.Physics.step(G.world, FIXED / SUB);
       G.raceTime += FIXED;
       if (s % 4 === 0) computeRanking();
@@ -848,7 +865,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveau 5 refait, cercles du niveau 4 ajustés, Zone Disco'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveaux 6 « Beach Party » et 7 « Le Club », 18 nouvelles billes dont Galaxium'); }, 900);
     }
 
     const unlock = function () {
