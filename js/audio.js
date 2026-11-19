@@ -482,6 +482,19 @@
         tone('square', midi(note + 7), t + 0.045, 0.06 * v, 0.08, d);
         break;
       }
+      case 'piano': {
+        if (!voice(1)) return;
+        d = out(pan);
+        const f = midi(MR.pick([60, 62, 64, 67, 69, 72, 74, 76, 79, 81]));
+        [[1, 0.24, 1.1], [2, 0.08, 0.7], [3, 0.04, 0.45], [4.01, 0.02, 0.3]].forEach(function (h) {
+          send(tone(h[0] === 1 ? 'triangle' : 'sine', f * h[0], t, h[2] === 1.1 ? h[1] * v : h[1] * v, h[2], d), sfxRev, 0.3);
+        });
+        const hn = noise(t, 0.02), hp = ctx.createBiquadFilter(), hg = ctx.createGain();
+        hp.type = 'highpass'; hp.frequency.value = 3000;
+        hg.gain.setValueAtTime(0.05 * v, t); hg.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
+        hn.connect(hp); hp.connect(hg); hg.connect(d);
+        break;
+      }
       case 'cowbell': {
         if (!voice(0.3)) return;
         d = out(pan);

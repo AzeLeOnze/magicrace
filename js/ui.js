@@ -714,6 +714,11 @@
       close.textContent = 'Fermer';
       replay.textContent = '↺ Nouvelle run';
       $('#resSub').textContent = st[0] ? st[0].name + ' gagne la run avec ' + st[0].pts + ' points' : '';
+      if (R.xp) {
+        const rw = $('#resReward');
+        rw.innerHTML = '<span class="chip-xp">+' + R.xp + ' XP</span> pour ta bille ★, ' + (R.myPos === 1 ? '1re' : R.myPos + 'e') + ' de la run';
+        rw.hidden = false;
+      }
       return;
     }
     close.textContent = 'Arrêter la run';

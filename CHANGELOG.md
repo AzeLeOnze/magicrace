@@ -1,5 +1,15 @@
 # MagicRace — journal des versions
 
+## 0.2.2 — 19 novembre 2026
+- Finir une run rapporte de l'XP selon la place de ta bille ★ au classement final : 1000 XP (1re), 600 (2e), 450 (3e), 325 (4e-5e), 250 (6e-10e), 150 (11e et plus).
+- Nouvelles chances des paquets normaux : Commune 49 %, Peu commune 32 %, Rare 13,5 %, Épique 3,3 %, Légendaire 1,2 %. Un paquet normal sur 100 cache un paquet ultra (1 %), y compris les paquets gagnés.
+- Niveaux d'XP : chaque niveau demande 9 % d'XP en plus du précédent (au lieu de 22 %). Les niveaux déjà mérités sont accordés avec leurs récompenses.
+- 20 nouvelles billes : 8 couleurs communes (Mangue, Cobalt, Bordeaux, Jade, Pêche, Ardoise, Fuchsia, Moutarde), 6 peu communes (Perle, Café, Citrouille, Nuage, Agrume, Chewing-gum), 4 rares (Dream, Crystal, Émeraude, Néon) et 2 épiques (Hacker, Glitch).
+- Nouveau bruit rare « Piano ». 127 cartes au total.
+- Éditeur de bille : l'aperçu est placé entre les billes de collection et les traînées.
+- Navigation libre dans le parcours : glisser pour se déplacer, molette ou deux doigts pour zoomer. Hors course la vue reste où tu l'as laissée ; en course, elle revient sur la course dès que tu lâches.
+- Les boutons du haut (niveau, cartes, cadeau, paramètres) restent visibles quand le panneau des contrôles est ouvert.
+
 ## 0.2.1 — 19 novembre 2026
 - 10 succès de runs : faire 1, 5, 15, 50, 100, 250, 500, 1000, 2000 et 5000 runs (de 200 à 16 000 XP). Les runs terminées s'affichent aussi dans les stats.
 - 4 nouvelles couleurs communes : Framboise, Pistache, Ocre et Bleuet.

@@ -74,8 +74,12 @@ button:disabled{opacity:.35;cursor:default}
 .hud-hint{font-size:11px;color:var(--ink-dim);opacity:.8}
 
 /* ---------- Barre du haut (cartes + panneau) ---------- */
-.topbar{position:fixed;top:calc(14px + var(--st));right:calc(16px + var(--sr));z-index:30;display:flex;gap:10px;transition:opacity .2s}
-body.panel-open .topbar{opacity:0;pointer-events:none}
+.topbar{position:fixed;top:calc(14px + var(--st));right:calc(16px + var(--sr));z-index:30;display:flex;gap:10px;transition:opacity .2s,right .3s var(--ease)}
+/* panneau ouvert : les boutons restent visibles à gauche du panneau (sauf « Contrôles », qui a sa croix) */
+body.panel-open .ptoggle{display:none}
+body.panel-open .topbar{right:calc(min(400px,100vw) + 16px + var(--sr))}
+@media (max-width:699px){body.panel-open .topbar{opacity:0;pointer-events:none}}
+#stage.panning{cursor:grabbing}
 .tbtn{position:relative;display:flex;align-items:center;gap:10px;padding:10px 16px 10px 14px;border-radius:999px;background:var(--glass);border:1px solid rgba(255,62,165,.5);box-shadow:0 0 18px rgba(255,62,165,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-weight:700;letter-spacing:.04em}
 .ptoggle .bars{width:16px;height:12px;display:flex;flex-direction:column;justify-content:space-between}
 .ptoggle .bars i{display:block;height:2px;border-radius:2px;background:currentColor}
@@ -697,7 +701,7 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
 <canvas id="stage" aria-label="Piste de la course de billes"></canvas>
 
 <div class="hud" id="hud">
-  <div class="brand"><span class="logo">MagicRace</span><span class="ver" id="hudVer">v0.2.1</span></div>
+  <div class="brand"><span class="logo">MagicRace</span><span class="ver" id="hudVer">v0.2.2</span></div>
   <div class="clock-row"><span class="clock" id="clock">00:00.00</span><span class="status" id="status">Prêt</span></div>
   <ol class="board" id="board" aria-label="Classement en direct"></ol>
   <div class="hud-hint" id="hudHint">Touchez un nom pour le suivre</div>
@@ -721,7 +725,7 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
   <div class="panel-head">
     <span class="logo">MagicRace</span>
     <div class="head-meta">
-      <span class="vbadge" id="panelVer">v0.2.1</span>
+      <span class="vbadge" id="panelVer">v0.2.2</span>
       <span class="tagline">Course de billes · dark disco</span>
     </div>
     <button class="icon-btn" id="pClose" type="button" aria-label="Replier le panneau">
@@ -761,7 +765,7 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
         </div>
         <ul class="odds" id="odds" aria-label="Chances par carte"></ul>
         <div class="help-pop" id="cardsHelp" hidden><p>Un paquet toutes les 10 minutes, jusqu'à 10 en réserve (plus avec les niveaux). Chaque paquet contient 5 cartes : billes, couleurs, traînées, bruits et contours. Seuls « Aucun », « Muet » et les 12 couleurs de base sont libres.</p>
-          <p>Le <b>paquet premium</b> (podium, niveaux, quêtes…) ne contient que des rares (80 %), épiques (15 %) et légendaires (5 %). Le <b>paquet ultra</b> : épiques (82 %) et légendaires (18 %). Un paquet des 10 minutes sur 125 cache un premium, un sur 333 un ultra.</p>
+          <p>Le <b>paquet premium</b> (podium, niveaux, quêtes…) ne contient que des rares (80 %), épiques (15 %) et légendaires (5 %). Le <b>paquet ultra</b> : épiques (82 %) et légendaires (18 %). Un paquet normal sur 125 cache un premium, un sur 100 un ultra.</p>
           <p>Ouvrir un paquet rapporte 50 XP (premium 100 XP, ultra 200 XP).</p></div>
       </div>
     </section>
@@ -809,7 +813,6 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
       </button>
     </div>
     <div class="ed-scroll">
-      <canvas class="ed-preview" id="edPreview" aria-label="Aperçu de la bille"></canvas>
       <label class="field"><span class="lbl">Nom</span>
         <span class="name-row"><input class="txt" type="text" id="edName" maxlength="18" spellcheck="false" autocomplete="off"><button class="icon-btn" id="edDice" type="button" aria-label="Nom au hasard" title="Nom au hasard">
           <svg viewBox="0 0 24 24"><path d="M4 7h11l-3-3M20 17H9l3 3"/></svg></button></span>
@@ -821,6 +824,7 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
       <div class="field"><span class="lbl">Billes de collection</span><div class="skin-rows" id="edShaders"></div>
         <button class="coll-link" id="edToCards" type="button">Débloquer des billes avec les paquets de cartes</button>
       </div>
+      <canvas class="ed-preview" id="edPreview" aria-label="Aperçu de la bille"></canvas>
       <div class="field"><span class="lbl">Traînée</span><div class="chips" id="edTrail"></div></div>
       <div class="field"><span class="lbl">Bruit quand elle tape un mur <output>clic = écouter</output></span><div class="chips" id="edSound"></div></div>
       <div class="field"><span class="lbl">Effet de contour</span><div class="chips" id="edOutline"></div>
@@ -961,24 +965,24 @@ input[type=range]{width:100%;accent-color:var(--magenta)}
 </div>
 <div class="confetti" id="confetti"></div>
 
-<script src="js/util.js?v=0.2.1"></script>
-<script src="js/catalog.js?v=0.2.1"></script>
-<script src="js/cards.js?v=0.2.1"></script>
-<script src="js/firebase.js?v=0.2.1"></script>
-<script src="js/sync.js?v=0.2.1"></script>
-<script src="js/audio.js?v=0.2.1"></script>
-<script src="js/marbleGL.js?v=0.2.1"></script>
-<script src="js/physics.js?v=0.2.1"></script>
-<script src="js/levels.js?v=0.2.1"></script>
-<script src="js/fx.js?v=0.2.1"></script>
-<script src="js/render.js?v=0.2.1"></script>
-<script src="js/ui.js?v=0.2.1"></script>
-<script src="js/packs.js?v=0.2.1"></script>
-<script src="js/settings.js?v=0.2.1"></script>
-<script src="js/progress.js?v=0.2.1"></script>
-<script src="js/account.js?v=0.2.1"></script>
-<script src="js/profile.js?v=0.2.1"></script>
-<script src="js/main.js?v=0.2.1"></script>
+<script src="js/util.js?v=0.2.2"></script>
+<script src="js/catalog.js?v=0.2.2"></script>
+<script src="js/cards.js?v=0.2.2"></script>
+<script src="js/firebase.js?v=0.2.2"></script>
+<script src="js/sync.js?v=0.2.2"></script>
+<script src="js/audio.js?v=0.2.2"></script>
+<script src="js/marbleGL.js?v=0.2.2"></script>
+<script src="js/physics.js?v=0.2.2"></script>
+<script src="js/levels.js?v=0.2.2"></script>
+<script src="js/fx.js?v=0.2.2"></script>
+<script src="js/render.js?v=0.2.2"></script>
+<script src="js/ui.js?v=0.2.2"></script>
+<script src="js/packs.js?v=0.2.2"></script>
+<script src="js/settings.js?v=0.2.2"></script>
+<script src="js/progress.js?v=0.2.2"></script>
+<script src="js/account.js?v=0.2.2"></script>
+<script src="js/profile.js?v=0.2.2"></script>
+<script src="js/main.js?v=0.2.2"></script>
 <script>
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 </script></body>

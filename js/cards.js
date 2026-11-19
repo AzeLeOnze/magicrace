@@ -13,7 +13,7 @@
   const PREMIUM = [{ id: 'rare', chance: 80 }, { id: 'epic', chance: 15 }, { id: 'legendary', chance: 5 }];
   // paquet ultra : encore mieux que le premium
   const ULTRA = [{ id: 'epic', chance: 82 }, { id: 'legendary', chance: 18 }];
-  const HIDDEN_ULTRA = 0.003, HIDDEN_PREMIUM = 0.008;
+  const HIDDEN_ULTRA = 0.01, HIDDEN_PREMIUM = 0.008;
   const TABLES = { normal: null, premium: PREMIUM, ultra: ULTRA };
 
   const C = { PERIOD: PERIOD, BASE_MAX: MAX_PACKS, PER_PACK: PER_PACK, PREMIUM: PREMIUM, ULTRA: ULTRA, HIDDEN_ULTRA: HIDDEN_ULTRA, HIDDEN_PREMIUM: HIDDEN_PREMIUM };
@@ -91,7 +91,9 @@
   };
 
   function rollRarity(table) {
-    let x = Math.random() * 100;
+    let tot = 0;
+    for (let i = 0; i < table.length; i++) tot += table[i].chance;
+    let x = Math.random() * tot;
     for (let i = 0; i < table.length; i++) {
       const r = table[i];
       if (x < r.chance) return r.id;
@@ -154,6 +156,12 @@
   // récompense de course
   C.grant = function (packs, premium, ultra) {
     regen();
+    // les paquets normaux reçus peuvent aussi cacher un premium ou un ultra
+    for (let i = 0; i < (packs || 0); i++) {
+      const x = Math.random();
+      if (x < HIDDEN_ULTRA) st.secret.push('ultra');
+      else if (x < HIDDEN_ULTRA + HIDDEN_PREMIUM) st.secret.push('premium');
+    }
     st.packs = Math.min(HARD_MAX, st.packs + (packs || 0));
     st.premium = Math.min(HARD_MAX, st.premium + (premium || 0));
     st.ultra = Math.min(HARD_MAX, st.ultra + (ultra || 0));

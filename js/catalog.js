@@ -3,11 +3,11 @@
   'use strict';
 
   MR.RARITIES = [
-    { id: 'common',    rank: 0, name: 'Commune',     plural: 'Communes',     chance: 70,  color: '#cfc8e0' },
-    { id: 'uncommon',  rank: 1, name: 'Peu commune', plural: 'Peu communes', chance: 20,  color: '#4ee08a' },
-    { id: 'rare',      rank: 2, name: 'Rare',        plural: 'Rares',        chance: 8,   color: '#3d9bff' },
-    { id: 'epic',      rank: 3, name: 'Épique',      plural: 'Épiques',      chance: 1.5, color: '#b65cff' },
-    { id: 'legendary', rank: 4, name: 'Légendaire',  plural: 'Légendaires',  chance: 0.5, color: '#ffcf4a' }
+    { id: 'common',    rank: 0, name: 'Commune',     plural: 'Communes',     chance: 49,  color: '#cfc8e0' },
+    { id: 'uncommon',  rank: 1, name: 'Peu commune', plural: 'Peu communes', chance: 32,  color: '#4ee08a' },
+    { id: 'rare',      rank: 2, name: 'Rare',        plural: 'Rares',        chance: 13.5, color: '#3d9bff' },
+    { id: 'epic',      rank: 3, name: 'Épique',      plural: 'Épiques',      chance: 3.3, color: '#b65cff' },
+    { id: 'legendary', rank: 4, name: 'Légendaire',  plural: 'Légendaires',  chance: 1.2, color: '#ffcf4a' }
   ];
   MR.rarity = function (id) {
     for (let i = 0; i < MR.RARITIES.length; i++) if (MR.RARITIES[i].id === id) return MR.RARITIES[i];
@@ -39,6 +39,12 @@
     { id: 'sable',      rarity: 'uncommon',  name: 'Sable',            accent: '#e8c98f', blurb: 'Dunes de la plage disco' },
     { id: 'lavande',    rarity: 'uncommon',  name: 'Lavande',          accent: '#b49cff', blurb: 'Champ de lavande en fleurs' },
     { id: 'pepite',     rarity: 'uncommon',  name: 'Pépite',           accent: '#ffc63a', blurb: 'Une pépite d’or brut qui brille' },
+    { id: 'perle',      rarity: 'uncommon',  name: 'Perle',            accent: '#f4eee8', blurb: 'Perle fine aux reflets nacrés' },
+    { id: 'cafe',       rarity: 'uncommon',  name: 'Café',             accent: '#8a5a36', blurb: 'Un latte et son cœur de mousse' },
+    { id: 'citrouille', rarity: 'uncommon',  name: 'Citrouille',       accent: '#ff8a1f', blurb: 'Côtes orange et petite tige' },
+    { id: 'nuage',      rarity: 'uncommon',  name: 'Nuage',            accent: '#8fd0ff', blurb: 'Ciel bleu, nuages qui passent' },
+    { id: 'agrume',     rarity: 'uncommon',  name: 'Agrume',           accent: '#ffd23a', blurb: 'Tranche de citron bien juteuse' },
+    { id: 'chewing',    rarity: 'uncommon',  name: 'Chewing-gum',      accent: '#ff7ac6', blurb: 'Rose bonbon, prêt à faire une bulle' },
     // rares
     { id: 'chrome',     rarity: 'rare',      name: 'Chrome',           accent: '#dfe6f2', blurb: 'Miroir poli, néons dans le reflet' },
     { id: 'damier',     rarity: 'rare',      name: 'Damier',           accent: '#f2f2f2', blurb: 'Le drapeau de l’arrivée' },
@@ -54,6 +60,10 @@
     { id: 'coquillage', rarity: 'rare',      name: 'Coquillage',       accent: '#ffc2b0', blurb: 'Spirale nacrée de la plage' },
     { id: 'tiedye',     rarity: 'rare',      name: 'Tie-dye',          accent: '#ff6ad5', blurb: 'Tourbillon de teinture hippie' },
     { id: 'cuivre',     rarity: 'rare',      name: 'Cuivre',           accent: '#d9824a', blurb: 'Cuivre poli, patine vert-de-gris' },
+    { id: 'dream',      rarity: 'rare',      name: 'Dream',            accent: '#c9a6ff', blurb: 'Pastels de rêve et petites étoiles' },
+    { id: 'crystal',    rarity: 'rare',      name: 'Crystal',          accent: '#d8f4ff', blurb: 'Cristal taillé aux reflets prisme' },
+    { id: 'emeraude',   rarity: 'rare',      name: 'Émeraude',         accent: '#1fd18a', blurb: 'Gemme verte aux mille facettes' },
+    { id: 'neon',       rarity: 'rare',      name: 'Néon',             accent: '#ff4fd8', blurb: 'Tubes de néon dans du verre fumé' },
     // épiques
     { id: 'lavalamp',   rarity: 'epic',      name: 'Lampe à lave',     accent: '#ff7a3d', blurb: 'La cire qui monte, années 70' },
     { id: 'aurore',     rarity: 'epic',      name: 'Aurore boréale',   accent: '#3dffb0', blurb: 'Rideaux de lumière sur la neige' },
@@ -67,6 +77,8 @@
     { id: 'trounoir',   rarity: 'epic',      name: 'Trou noir',        accent: '#ffb347', blurb: 'Disque d’accrétion, lumière courbée' },
     { id: 'kaleido',    rarity: 'epic',      name: 'Kaléidoscope',     accent: '#ff6ad5', blurb: 'Huit miroirs qui tournent' },
     { id: 'orage',      rarity: 'epic',      name: 'Orage',            accent: '#9fb3d9', blurb: 'Nuages noirs et éclairs' },
+    { id: 'hacker',     rarity: 'epic',      name: 'Hacker',           accent: '#33ff77', blurb: 'Pluie de code vert sur écran noir' },
+    { id: 'glitch',     rarity: 'epic',      name: 'Glitch',           accent: '#ff3ec8', blurb: 'Image qui bugue et se décale' },
     // légendaires
     { id: 'nebula',     rarity: 'legendary', name: 'Nébuleuse',        accent: '#b46bff', blurb: 'Gaz cosmiques et étoiles' },
     { id: 'magma',      rarity: 'legendary', name: 'Magma',            accent: '#ff6a1f', blurb: 'Croûte basaltique, fissures de lave' },
@@ -96,7 +108,9 @@
     { c: '#e34234', n: 'Vermillon' }, { c: '#ff8c69', n: 'Saumon' }, { c: '#a39b5a', n: 'Kaki' },
     { c: '#f3e5c0', n: 'Crémeux' }, { c: '#c9a86a', n: 'Soja' }, { c: '#22d3c5', n: 'Turquoise' },
     { c: '#8e3b73', n: 'Prune' }, { c: '#8ecbff', n: 'Ciel' },
-    { c: '#e0245e', n: 'Framboise' }, { c: '#93c572', n: 'Pistache' }, { c: '#cc7a22', n: 'Ocre' }, { c: '#6c8cf0', n: 'Bleuet' }
+    { c: '#e0245e', n: 'Framboise' }, { c: '#93c572', n: 'Pistache' }, { c: '#cc7a22', n: 'Ocre' }, { c: '#6c8cf0', n: 'Bleuet' },
+    { c: '#ffaa33', n: 'Mangue' }, { c: '#2a55e0', n: 'Cobalt' }, { c: '#8a1e3f', n: 'Bordeaux' }, { c: '#13b37a', n: 'Jade' },
+    { c: '#ff9e7a', n: 'Pêche' }, { c: '#5f7184', n: 'Ardoise' }, { c: '#e5279b', n: 'Fuchsia' }, { c: '#d9b21c', n: 'Moutarde' }
   ];
 
   // Effets : « aucun » est toujours libre, le reste se gagne en cartes (rareté indiquée)
@@ -120,6 +134,7 @@
     { id: 'chip', name: '8-bit', rarity: 'uncommon', blurb: 'Bruit · blip de console' },
     { id: 'boing', name: 'Boing', rarity: 'rare', blurb: 'Bruit · ressort qui rebondit' },
     { id: 'laser', name: 'Laser', rarity: 'rare', blurb: 'Bruit · tir laser' },
+    { id: 'piano', name: 'Piano', rarity: 'rare', blurb: 'Bruit · une note de piano' },
     { id: 'cowbell', name: 'Cowbell', rarity: 'epic', blurb: 'Bruit · cloche à vache' }
   ];
   MR.OUTLINES = [

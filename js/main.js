@@ -126,6 +126,7 @@
 
   /* ---------------- niveau & course ---------------- */
   G.loadLevel = function (id) {
+    G.manualCam = null;
     if (G.run && !runLoading) G.stopRun();
     G.levelDef = MR.levelById(id);
     G.settings.levelId = G.levelDef.id;
@@ -180,6 +181,7 @@
   };
 
   function go() {
+    if (!G.navHeld) G.manualCam = null;
     G.state = 'racing';
     G.raceTime = 0;
     G.world.arms.forEach(function (a) { if (a.kind === 'door') a.omega = a.openSpeed; });
@@ -311,7 +313,9 @@
     });
     if (R.idx >= R.levels.length - 1) {
       R.done = true;
-      MR.Prog.onRunEnd();
+      const st = G.runStandings();
+      R.myPos = st.findIndex(function (t) { return t.me; }) + 1;
+      R.xp = MR.Prog.onRunEnd(R.myPos);
     }
   }
   G.runStandings = function () {
@@ -542,7 +546,24 @@
   }
 
   /* ---------------- caméra ---------------- */
+  // caméra libre (glisser / molette / pincer) : hors course elle reste où on l'a laissée,
+  // en course elle revient au suivi automatique dès qu'on lâche
+  G.manualCam = null;
+  G.navHeld = false;
+  function clampManual(mc) {
+    const L = G.level, vw = MR.Render.vw - MR.Render.insetTarget(), vh = MR.Render.vh;
+    const sMin = Math.min(vw / L.W, vh / L.H) * 0.9;
+    mc.s = MR.clamp(mc.s, sMin, 3);
+    mc.x = MR.clamp(mc.x, 0, L.W);
+    mc.y = MR.clamp(mc.y, 0, L.H);
+    return mc;
+  }
+  G.releaseNav = function () {
+    G.navHeld = false;
+    if (G.state === 'racing' || G.state === 'countdown') G.manualCam = null;
+  };
   function cameraTarget() {
+    if (G.manualCam) return clampManual(G.manualCam);
     const L = G.level, vw = MR.Render.vw - MR.Render.insetTarget(), vh = MR.Render.vh, mode = G.settings.camera;
     if (mode === 'overview' && !G.followId) {
       return { x: L.W / 2, y: L.H / 2, s: Math.min(vw / L.W, vh / L.H) * 0.96 };
@@ -593,7 +614,7 @@
   }
   function updateCamera(dt, snap) {
     const t = cameraTarget(), c = MR.Render.cam;
-    if (snap) { c.x = t.x; c.y = t.y; c.s = t.s; return; }
+    if (snap || G.manualCam) { c.x = t.x; c.y = t.y; c.s = t.s; return; }
     const rate = { soft: 1.6, normal: 3.2, fast: 6.5 }[G.settings.camSmooth] || 3.2;
     const k = 1 - Math.exp(-dt * rate), ks = 1 - Math.exp(-dt * rate * 0.8);
     c.x += (t.x - c.x) * k;
@@ -788,7 +809,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : succès de runs, 4 couleurs et la bille Pépite !'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : 20 billes, bruit piano, XP de run et navigation libre !'); }, 900);
     }
 
     const unlock = function () {
@@ -815,9 +836,30 @@
       return { m: best, p: p };
     }
     function canDrag() { return G.state === 'ready' || G.state === 'finished'; }
+    const touches = new Map();
+    let pan = null, pinch = null;
+    function camNow() { const c = MR.Render.cam; return { x: c.x, y: c.y, s: c.s }; }
+    function startPan(e) {
+      pan = { id: e.pointerId, sx: e.clientX, sy: e.clientY, cam: camNow(), moved: false };
+    }
     stage.addEventListener('pointerdown', function (e) {
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.size === 2 && !G.drag) {
+        // deux doigts : zoom
+        const pts = Array.from(touches.values());
+        pinch = { d0: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1, cam: camNow() };
+        pan = null;
+        G.navHeld = true;
+        G.manualCam = camNow();
+        try { stage.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        return;
+      }
       const hit = pick(e);
-      if (!hit.m) return;
+      if (!hit.m) {
+        startPan(e);
+        try { stage.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        return;
+      }
       if (!canDrag()) { G.follow(hit.m.id); return; }
       G.drag = { m: hit.m, id: e.pointerId, ox: hit.m.x - hit.p.x, oy: hit.m.y - hit.p.y, sx: e.clientX, sy: e.clientY, moved: false };
       hit.m.held = true;
@@ -826,6 +868,19 @@
       stage.style.cursor = 'grabbing';
     });
     stage.addEventListener('pointermove', function (e) {
+      if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch && touches.size >= 2) {
+        const pts = Array.from(touches.values());
+        const dd = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+        G.manualCam = { x: pinch.cam.x, y: pinch.cam.y, s: pinch.cam.s * dd / pinch.d0 };
+        return;
+      }
+      if (pan && pan.id === e.pointerId) {
+        const dx = e.clientX - pan.sx, dy = e.clientY - pan.sy;
+        if (!pan.moved && Math.hypot(dx, dy) > 5) { pan.moved = true; G.navHeld = true; stage.classList.add('panning'); }
+        if (pan.moved) G.manualCam = { x: pan.cam.x - dx / pan.cam.s, y: pan.cam.y - dy / pan.cam.s, s: G.manualCam ? G.manualCam.s : pan.cam.s };
+        return;
+      }
       const d = G.drag;
       if (d && d.id === e.pointerId) {
         const p = MR.Render.screenToWorld(e.clientX, e.clientY);
@@ -837,6 +892,13 @@
       if (e.pointerType === 'mouse') stage.style.cursor = canDrag() && pick(e).m ? 'grab' : (pick(e).m ? 'pointer' : '');
     });
     function release(e) {
+      if (e) touches.delete(e.pointerId);
+      if (pinch && touches.size < 2) { pinch = null; if (!touches.size) G.releaseNav(); }
+      if (pan && (!e || pan.id === e.pointerId)) {
+        pan = null;
+        stage.classList.remove('panning');
+        G.releaseNav();
+      }
       const d = G.drag;
       if (!d || (e && d.id !== e.pointerId)) return;
       d.m.held = false;
@@ -847,6 +909,19 @@
     }
     stage.addEventListener('pointerup', release);
     stage.addEventListener('pointercancel', release);
+    // molette : zoom vers le curseur (en course, la vue revient au suivi peu après)
+    let wheelTimer = null;
+    stage.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      const c = MR.Render.cam, p = MR.Render.screenToWorld(e.clientX, e.clientY);
+      const f = Math.exp(-e.deltaY * 0.0015);
+      const mc = clampManual({ x: c.x, y: c.y, s: c.s * f });
+      mc.x = p.x - (e.clientX - MR.Render.cx()) / mc.s;
+      mc.y = p.y - (e.clientY - MR.Render.vh / 2) / mc.s;
+      G.manualCam = mc;
+      clearTimeout(wheelTimer);
+      if (G.state === 'racing' || G.state === 'countdown') wheelTimer = setTimeout(function () { if (!G.navHeld) G.manualCam = null; }, 1400);
+    }, { passive: false });
 
     if (document.fonts && document.fonts.load) {
       document.fonts.load('40px Monoton').catch(function () {});

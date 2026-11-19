@@ -10,8 +10,8 @@
   P.onNotify = function (fn) { notify = fn; };
 
   /* ---------------- niveaux ---------------- */
-  // passer du niveau n au niveau n+1 coûte 500 XP au départ, puis 22 % de plus à chaque niveau
-  P.need = function (lv) { return Math.round(500 * Math.pow(1.22, lv - 1)); };
+  // passer du niveau n au niveau n+1 coûte 500 XP au départ, puis 9 % de plus à chaque niveau (0.2.2)
+  P.need = function (lv) { return Math.round(500 * Math.pow(1.09, lv - 1)); };
   P.levelOf = function (xp) {
     let lv = 1, rest = Math.max(0, xp || 0);
     while (rest >= P.need(lv) && lv < 5000) { rest -= P.need(lv); lv++; }
@@ -277,9 +277,21 @@
     P.addXP(P.PACK_XP[type] || 50, 'Paquet');
   };
   // run terminée (main.js) : tous les niveaux enchaînés
-  P.onRunEnd = function () {
+  P.onRunEnd = function (pos) {
     st.stats.runs++;
     P.check();
+    const xp = P.runXP(pos);
+    P.addXP(xp, 'Run');
+    return xp;
+  };
+  // XP selon la place de ta bille ★ au classement final de la run
+  P.runXP = function (pos) {
+    if (pos === 1) return 1000;
+    if (pos === 2) return 600;
+    if (pos === 3) return 450;
+    if (pos === 4 || pos === 5) return 325;
+    if (pos >= 6 && pos <= 10) return 250;
+    return 150;
   };
   P.onSecret = function () { st.stats.hidden++; save(true); };
   P.onRename = function () {
