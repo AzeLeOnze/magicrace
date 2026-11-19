@@ -1,6 +1,6 @@
 # MagicRace
 
-Course de billes disco en 2D, par Aze Le Onze. Version 0.2.9.
+Course de billes disco en 2D, par Aze Le Onze. Version 0.2.10.
 
 **Jouer : https://azeleonze.github.io/magicrace/**
 

@@ -1,5 +1,9 @@
 # MagicRace — journal des versions
 
+## 0.2.10 — 19 novembre 2026
+- Son sur téléphone : plus de grésillements ni de craquements. Le téléphone utilise un tampon audio plus grand, des réverbes plus légères et moins de bruitages en même temps. La musique et les bruitages sont aussi préparés un peu plus à l'avance.
+- Partout : un limiteur empêche la sortie de saturer quand beaucoup de billes s'entrechoquent, et l'attaque des notes est adoucie (moins de petits clics).
+
 ## 0.2.9 — 19 novembre 2026
 - Nouveau niveau 8 « Bar Disco », dans un bar : étagères de bouteilles rétroéclairées, néons de cocktail, lampes suspendues et comptoir.
   - 1re table de flipper : bumpers, slingshots et deux flippers qui frappent sur le temps de la musique, les billes passent entre eux ;

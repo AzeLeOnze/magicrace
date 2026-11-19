@@ -11,6 +11,14 @@
   let voices = 0;
   const S = { music: true, musicVol: 0.55, sfx: true, sfxVol: 0.75 };
 
+  // Téléphone : tampon audio plus grand, réverbes plus courtes, moins de sons simultanés et sons programmés un peu
+  // plus tôt. Sinon le processeur audio prend du retard et on entend des craquements (0.2.10).
+  const MOBILE = (function () {
+    try { return window.matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent); }
+    catch (e) { return false; }
+  })();
+  const LEAD = MOBILE ? 0.035 : 0.012;
+  function soon() { return ctx.currentTime + LEAD; }
   function midi(n) { return 440 * Math.pow(2, (n - 69) / 12); }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 
@@ -28,12 +36,14 @@
     if (ctx) return true;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return false;
-    try { ctx = new AC(); } catch (e) { return false; }
+    try { ctx = new AC({ latencyHint: MOBILE ? 'playback' : 'interactive' }); }
+    catch (e) { try { ctx = new AC(); } catch (e2) { return false; } }
 
     comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 4;
-    comp.attack.value = 0.004; comp.release.value = 0.18;
-    master = ctx.createGain(); master.gain.value = 0.9;
+    // compresseur réglé en limiteur : beaucoup de chocs en même temps ne saturent plus la sortie
+    comp.threshold.value = -14; comp.knee.value = 6; comp.ratio.value = 10;
+    comp.attack.value = 0.002; comp.release.value = 0.2;
+    master = ctx.createGain(); master.gain.value = 0.8;
     master.connect(comp); comp.connect(ctx.destination);
 
     musicBus = ctx.createGain(); musicBus.gain.value = S.music ? S.musicVol : 0; musicBus.connect(master);
@@ -41,7 +51,7 @@
     drumBus = ctx.createGain(); drumBus.gain.value = 0.9; drumBus.connect(musicBus);
     pumpBus = ctx.createGain(); pumpBus.gain.value = 1; pumpBus.connect(musicBus);
 
-    const rev = ctx.createConvolver(); rev.buffer = makeIR(2.4, 3.2);
+    const rev = ctx.createConvolver(); rev.buffer = makeIR(MOBILE ? 1.3 : 2.4, 3.2);
     const revOut = ctx.createGain(); revOut.gain.value = 0.34;
     rev.connect(revOut); revOut.connect(musicBus);
     revSend = ctx.createGain(); revSend.connect(rev);
@@ -53,7 +63,7 @@
     const dOut = ctx.createGain(); dOut.gain.value = 0.42; dlp.connect(dOut); dOut.connect(musicBus);
     delaySend = ctx.createGain(); delaySend.connect(delay);
 
-    const srev = ctx.createConvolver(); srev.buffer = makeIR(1.1, 4);
+    const srev = ctx.createConvolver(); srev.buffer = makeIR(MOBILE ? 0.6 : 1.1, 4);
     const srevOut = ctx.createGain(); srevOut.gain.value = 0.25;
     srev.connect(srevOut); srevOut.connect(sfxBus);
     sfxRev = ctx.createGain(); sfxRev.connect(srev);
@@ -322,7 +332,7 @@
       const skip = Math.ceil((now - nextTime) / S16);
       stepIdx += skip; nextTime += skip * S16;
     }
-    while (nextTime < now + 0.14) {
+    while (nextTime < now + (MOBILE ? 0.3 : 0.14)) {
       scheduleStep(stepIdx, nextTime);
       nextTime += S16;
       stepIdx++;
@@ -333,7 +343,7 @@
     if (!ctx || running) return;
     running = true;
     stepIdx = 0;
-    nextTime = ctx.currentTime + 0.08;
+    nextTime = ctx.currentTime + 0.12;
     musicStart = nextTime;
     musicBus.gain.cancelScheduledValues(ctx.currentTime);
     musicBus.gain.setTargetAtTime(S.musicVol, ctx.currentTime, 0.05);
@@ -385,7 +395,7 @@
     return sfxBus;
   }
   function voice(dur) {
-    if (voices > 26) return false;
+    if (voices > (MOBILE ? 14 : 26)) return false;
     voices++;
     setTimeout(function () { voices--; }, (dur + 0.05) * 1000);
     return true;
@@ -396,7 +406,7 @@
     o.frequency.setValueAtTime(f, t);
     if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + (fdur || dec));
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(peak, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.006);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
     o.connect(g); g.connect(dest);
     o.start(t); o.stop(t + dec + 0.02);
@@ -406,7 +416,7 @@
   A.hit = function (type, intensity, pan) {
     if (!ctx || !S.sfx || !type || type === 'none') return;
     const v = clamp(intensity, 0.04, 1);
-    const t = ctx.currentTime + 0.004;
+    const t = soon();
     let d;
     switch (type) {
       case 'glass': {
@@ -521,13 +531,13 @@
 
   A.bumper = function (pan) {
     if (!ctx || !S.sfx || !voice(0.2)) return;
-    const t = ctx.currentTime + 0.004, d = out(pan);
+    const t = soon(), d = out(pan);
     tone('sine', 260, t, 0.3, 0.16, d, 980, 0.07);
     tone('triangle', 1960, t, 0.06, 0.08, d);
   };
   A.countBeep = function (go) {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.01;
+    const t = soon();
     if (go) {
       tone('square', 880, t, 0.09, 0.5, sfxBus);
       tone('square', 1318.5, t, 0.07, 0.6, sfxBus);
@@ -538,7 +548,7 @@
   };
   A.finishChime = function (rank) {
     if (!ctx || !S.sfx || !voice(0.6)) return;
-    const t = ctx.currentTime + 0.01;
+    const t = soon();
     const top = rank <= 3 ? 84 : 79;
     [0, 3, 7].forEach(function (k, i) {
       send(tone('triangle', midi(top - 12 + [0, 5, 10][i]), t + i * 0.06, 0.09, 0.5, sfxBus), sfxRev, 0.5);
@@ -546,14 +556,14 @@
   };
   A.fanfare = function () {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.02;
+    const t = soon();
     const notes = [62, 65, 69, 74, 77, 81];
     notes.forEach(function (n, i) { send(tone('square', midi(n), t + i * 0.07, 0.05, 0.35, sfxBus), sfxRev, 0.5); });
     [62, 69, 72, 77].forEach(function (n) { send(tone('sawtooth', midi(n), t + 0.45, 0.035, 1.4, sfxBus), sfxRev, 0.6); });
   };
   A.uiTick = function () {
     if (!ctx || !S.sfx) return;
-    tone('sine', 1800, ctx.currentTime + 0.002, 0.04, 0.05, sfxBus);
+    tone('sine', 1800, soon(), 0.04, 0.05, sfxBus);
   };
 
   /* ---------------- cartes à jouer ---------------- */
@@ -577,7 +587,7 @@
   }
   A.packCharge = function (dur) {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.01;
+    const t = soon();
     sweepNoise(t, dur, 400, 2600, 4, 0.16, sfxBus);
     const o = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
     o.type = 'sawtooth';
@@ -589,7 +599,7 @@
   };
   A.packRip = function () {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.005;
+    const t = soon();
     for (let i = 0; i < 6; i++) {
       const tt = t + i * 0.028 + Math.random() * 0.01;
       const n = noise(tt, 0.05), bp = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -603,11 +613,11 @@
   };
   A.cardWhoosh = function () {
     if (!ctx || !S.sfx || !voice(0.25)) return;
-    sweepNoise(ctx.currentTime + 0.005, 0.2, 500, 2600, 2.5, 0.12, out(MR.rand(-0.5, 0.5)), 0.12);
+    sweepNoise(soon(), 0.2, 500, 2600, 2.5, 0.12, out(MR.rand(-0.5, 0.5)), 0.12);
   };
   A.cardFlip = function () {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.004;
+    const t = soon();
     const n = noise(t, 0.02), hp = ctx.createBiquadFilter(), g = ctx.createGain();
     hp.type = 'highpass'; hp.frequency.value = 3500;
     g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
@@ -616,11 +626,11 @@
   };
   A.whoosh = function () {
     if (!ctx || !S.sfx) return;
-    sweepNoise(ctx.currentTime + 0.005, 0.5, 300, 2400, 3, 0.14, sfxBus, 0.3);
+    sweepNoise(soon(), 0.5, 300, 2400, 3, 0.14, sfxBus, 0.3);
   };
   A.riser = function (dur, big) {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.01;
+    const t = soon();
     send(sweepNoise(t, dur, 200, big ? 7500 : 5000, 7, big ? 0.2 : 0.15, sfxBus), sfxRev, 0.4);
     const lp = ctx.createBiquadFilter(), g = ctx.createGain();
     lp.type = 'lowpass'; lp.Q.value = 6;
@@ -637,13 +647,13 @@
   };
   A.heartbeat = function (k) {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.005, v = 0.35 + 0.35 * (k || 0);
+    const t = soon(), v = 0.35 + 0.35 * (k || 0);
     tone('sine', 78, t, v, 0.22, sfxBus, 42, 0.18);
     tone('sine', 70, t + 0.15, v * 0.6, 0.2, sfxBus, 40, 0.16);
   };
   A.crackle = function () {
     if (!ctx || !S.sfx || !voice(0.06)) return;
-    const t = ctx.currentTime + 0.003;
+    const t = soon();
     const n = noise(t, 0.05), hp = ctx.createBiquadFilter(), g = ctx.createGain();
     hp.type = 'highpass'; hp.frequency.value = 2500 + Math.random() * 3000;
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.002);
@@ -696,7 +706,7 @@
   }
   A.reveal = function (rarity) {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.01;
+    const t = soon();
     if (rarity === 'common') {
       send(tone('triangle', midi(86), t, 0.1, 0.35, sfxBus), sfxRev, 0.4);
     } else if (rarity === 'uncommon') {
@@ -720,7 +730,7 @@
   };
   A.newBadge = function () {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.005;
+    const t = soon();
     tone('triangle', 1568, t, 0.06, 0.15, sfxBus);
     send(tone('triangle', 2093, t + 0.07, 0.06, 0.3, sfxBus), sfxRev, 0.5);
   };
@@ -729,7 +739,7 @@
   // bille éliminée : détonation courte et grave, plus un éclat de verre
   A.explode = function (pan, v) {
     if (!ctx || !S.sfx || !voice(0.8)) return;
-    const t = ctx.currentTime + 0.004, d = out(pan), k = clamp(v == null ? 1 : v, 0.2, 1);
+    const t = soon(), d = out(pan), k = clamp(v == null ? 1 : v, 0.2, 1);
     tone('sine', 150, t, 0.7 * k, 0.55, d, 38, 0.45);
     const n = noise(t, 0.5), lp = ctx.createBiquadFilter(), g = ctx.createGain();
     lp.type = 'lowpass';
@@ -742,31 +752,31 @@
   // un cercle du niveau 4 se brise
   A.ringBreak = function (pan) {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.01, d = out(pan);
+    const t = soon(), d = out(pan);
     sweepNoise(t, 0.35, 6000, 900, 3, 0.18, d, 0.01);
     [88, 91, 95, 100].forEach(function (nn, i) { send(tone('triangle', midi(nn), t + i * 0.035, 0.05, 0.45, d), sfxRev, 0.6); });
   };
   // pulsation des cercles sur le temps
   A.pulse = function () {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.004;
+    const t = soon();
     tone('sine', 196, t, 0.05, 0.12, sfxBus, 392, 0.06);
   };
   A.questDone = function () {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.01;
+    const t = soon();
     [72, 76, 79, 84].forEach(function (nn, i) { bell(t + i * 0.08, nn + 12, 0.08); });
   };
   A.levelUp = function () {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.02;
+    const t = soon();
     boom(t, false);
     chord(t + 0.05, [50, 57, 62, 65, 69, 74], 2.4, 0.05, 'sawtooth', 3600);
     [74, 77, 81, 86, 89, 93, 98].forEach(function (nn, i) { send(tone('square', midi(nn), t + 0.2 + i * 0.06, 0.03, 0.35, sfxBus), sfxRev, 0.6); });
   };
   A.coin = function () {
     if (!ctx || !S.sfx) return;
-    const t = ctx.currentTime + 0.004;
+    const t = soon();
     tone('square', 988, t, 0.05, 0.08, sfxBus);
     send(tone('square', 1319, t + 0.07, 0.05, 0.3, sfxBus), sfxRev, 0.4);
   };

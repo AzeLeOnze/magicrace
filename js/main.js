@@ -873,7 +873,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveau 8 « Bar Disco » (flippers et fioles), billes Ténèbres, Obscur et Dark'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : son plus propre sur téléphone (plus de craquements)'); }, 900);
     }
 
     const unlock = function () {
