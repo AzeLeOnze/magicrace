@@ -1,5 +1,11 @@
 # MagicRace — journal des versions
 
+## 0.2.12 — 20 novembre 2026
+- Records de temps : sur chaque niveau de course, le meilleur temps de ta bille ★ est gardé, quel que soit le nombre de billes. Les niveaux éliminatoires (4 et 5) n'ont pas de record.
+  - Il s'affiche sous le chrono (« 🏆 Record ★ »). Pendant la course, il passe au vert tant que ta bille peut encore le battre.
+  - Record battu : grande annonce « Record battu ! » avec trophée, nouveau temps, ancien temps barré et l'écart, plus des confettis à l'arrivée.
+  - Le premier temps sur un niveau devient le premier record. Les records apparaissent aussi dans l'écran des résultats et dans Profil → Stats (colonne « Record »), et sont sauvegardés avec ta progression.
+
 ## 0.2.11 — 20 novembre 2026
 - Nouvelle musique : « Protorave 3000 » de RIHEV, en boucle sans coupure. L'ancienne musique synthétisée ne sert plus que si le fichier ne peut pas être chargé.
 - À chaque fois que le morceau commence ou recommence, une petite carte avec un vinyle qui tourne annonce « Vous écoutez RIHEV - Protorave 3000 ».

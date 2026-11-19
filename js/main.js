@@ -150,6 +150,8 @@
     G.moved = false;
     G.drag = null;
     G.reward = null;
+    G.newRecord = null;
+    if (MR.UI && MR.UI.refreshRecord) MR.UI.refreshRecord();
     G.raceTime = 0; G.finishCount = 0; G.resultsIn = 0; G.cd = 0;
     G.fx.clear();
     G.quietUntil = G.time + 0.8;
@@ -221,6 +223,19 @@
     MR.Audio.finishChime(m.rank);
     MR.FX.burst(G.fx, m.x, m.y, m.rgb, m.rank === 1 ? 40 : 18);
     award(m);
+    // record de temps de la bille ★ (niveaux de course seulement)
+    if (m.cfg.me && !G.simulating && !G.level.elim && !G.level.mode) {
+      const id = G.levelDef.id, prev = MR.Prog.bestTime(id);
+      if (MR.Prog.setBest(id, m.time)) {
+        G.newRecord = { time: m.time, prev: prev };
+        if (prev) {
+          setTimeout(function () { MR.UI.recordBeaten(m.time, prev); }, m.rank === 1 ? 900 : 150);
+          const b = G.level.finish.box;
+          MR.FX.confetti(G.fx, b.x0 + 60, b.x1 - 60, b.y1 - 40, 90);
+        } else MR.UI.toast('★ Premier record sur ce niveau : ' + MR.formatTime(m.time));
+        MR.UI.refreshRecord();
+      }
+    }
     if (m.rank === 1) {
       MR.UI.banner(m.cfg.name, !!G.level.elim);
       MR.Audio.fanfare();
@@ -873,7 +888,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : nouvelle musique, RIHEV - Protorave 3000 (128 BPM)'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : records de temps de ta bille ★ sur chaque niveau'); }, 900);
     }
 
     const unlock = function () {

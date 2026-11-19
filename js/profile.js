@@ -247,7 +247,7 @@
       ['Bille qui gagne le plus', top(s.winners)]
     ];
     let h = '<div class="st-grid">' + tiles.map(function (t) { return '<div class="st-tile"><span>' + t[0] + '</span><b>' + t[1] + '</b></div>'; }).join('') + '</div>';
-    h += '<section class="pr-sec"><h3>Ta bille ★ par niveau</h3><div class="st-table" role="table"><div class="st-row st-th" role="row"><span>Niveau</span><span>Courses</span><span>1re</span><span>Top 3</span><span>Top 5</span><span>Meilleur</span></div>';
+    h += '<section class="pr-sec"><h3>Ta bille ★ par niveau</h3><div class="st-table" role="table"><div class="st-row st-th" role="row"><span>Niveau</span><span>Courses</span><span>1re</span><span>Top 3</span><span>Top 5</span><span>Record</span></div>';
     MR.LEVELS.forEach(function (L) {
       const b = s.byLevel[L.id] || { races: 0, t1: 0, t3: 0, t5: 0, best: 0, posSum: 0, posN: 0 };
       h += '<div class="st-row" role="row"><span><b>' + L.num + '.</b> ' + esc(L.name) + '</span><span>' + b.races + '</span><span>' + pct(b.t1, b.races) + '</span><span>' + pct(b.t3, b.races) +

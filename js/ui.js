@@ -73,6 +73,7 @@
     $('#hudVer').textContent = 'v' + MR.VERSION;
     $('#panelVer').textContent = 'v' + MR.VERSION;
     MR.Audio.onTrackStart = function (title) { UI.nowPlaying(title); };
+    setTimeout(UI.refreshRecord, 0);
 
     $('#pToggle').addEventListener('click', function () { UI.setPanel(true); });
     $('#pClose').addEventListener('click', function () { UI.setPanel(false); });
@@ -261,6 +262,35 @@
   };
   UI.hideBanner = function () { clearTimeout(bannerTimer); $('#banner').hidden = true; };
 
+  // record de temps de la bille ★ sur le niveau affiché (sous le chrono) ; rien pour les niveaux éliminatoires
+  UI.refreshRecord = function () {
+    const el = $('#hudRec');
+    if (!el || !G || !G.levelDef) return;
+    const race = !G.level.elim && !G.level.mode;
+    el.hidden = !race;
+    if (!race) return;
+    const t = MR.Prog.bestTime(G.levelDef.id);
+    $('#hudRecT').textContent = t ? MR.formatTime(t) : '—';
+    el.classList.remove('beat');
+    if (G.newRecord) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  };
+  // grande annonce « Record battu ! »
+  let recTimer = null;
+  UI.recordBeaten = function (t, prev) {
+    const el = $('#recordFx');
+    const title = 'Record battu !'.split('').map(function (ch, i) { return '<span style="--i:' + i + '">' + (ch === ' ' ? '&nbsp;' : MR.esc(ch)) + '</span>'; }).join('');
+    el.innerHTML = '<div class="rf-card"><span class="rf-trophy" aria-hidden="true">🏆</span><span class="rf-title">' + title + '</span>' +
+      '<span class="rf-time">' + MR.formatTime(t) + '</span>' +
+      '<span class="rf-diff"><s>' + MR.formatTime(prev) + '</s>−' + (prev - t).toFixed(2).replace('.', ',') + ' s</span></div>';
+    el.classList.remove('out');
+    el.hidden = false;
+    MR.Audio.levelUp();
+    clearTimeout(recTimer);
+    recTimer = setTimeout(function () {
+      el.classList.add('out');
+      recTimer = setTimeout(function () { el.hidden = true; el.classList.remove('out'); }, 450);
+    }, 3400);
+  };
   // « Vous écoutez … » avec un vinyle qui tourne, à chaque fois que le morceau recommence
   let npTimer = null;
   UI.nowPlaying = function (title) {
@@ -709,6 +739,7 @@
       (boom ? ' · ' + boom + ' bille' + (boom > 1 ? 's' : '') + ' coincée' + (boom > 1 ? 's' : '') + ' (💥)' : '');
     const rw = $('#resReward');
     let rwHtml = G.reward ? '★ Ta bille finit ' + (G.reward.rank === 1 ? '1re' : G.reward.rank + 'e') + ' : tu gagnes <b>' + MR.esc(G.reward.text) + '</b>' : '';
+    if (G.newRecord) rwHtml += (rwHtml ? '<br>' : '') + '🏆 ' + (G.newRecord.prev ? 'Record battu : <b>' + MR.formatTime(G.newRecord.time) + '</b> (ancien ' + MR.formatTime(G.newRecord.prev) + ')' : 'Premier record : <b>' + MR.formatTime(G.newRecord.time) + '</b>');
     if (G.raceXP) rwHtml += (rwHtml ? '<br>' : '') + '<span class="chip-xp">+' + G.raceXP + ' XP</span> pour cette course' + (rk.length < 30 ? ' (500 XP max avec 30 billes ou plus)' : '');
     rw.hidden = !rwHtml;
     rw.innerHTML = rwHtml;
@@ -811,7 +842,14 @@
       if (fpsT >= 0.5) { $('#fps').textContent = Math.round(fpsN / fpsT) + ' i/s'; fpsN = 0; fpsT = 0; }
     }
     const txt = MR.formatTime(G.state === 'countdown' ? 0 : G.raceTime);
-    if (txt !== lastClock) { $('#clock').textContent = txt; lastClock = txt; }
+    if (txt !== lastClock) {
+      $('#clock').textContent = txt; lastClock = txt;
+      // en course : le record passe au vert tant que ta bille ★ peut encore le battre
+      if (G.state === 'racing' && !G.newRecord) {
+        const me = G.marbles.find(function (m) { return m.cfg.me; }), best = MR.Prog.bestTime(G.levelDef.id);
+        $('#hudRec').classList.toggle('beat', !!(best && me && !me.finished && G.raceTime < best));
+      }
+    }
     boardT -= dt;
     if (boardT <= 0 || UI.boardDirty) { boardT = 0.25; UI.boardDirty = false; updateBoard(); }
     if (!panelOpen) return;

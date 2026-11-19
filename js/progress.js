@@ -228,6 +228,13 @@
       keys.sort(function (a, b) { return map[b] - map[a]; }).slice(60).forEach(function (k) { delete map[k]; });
     }
   }
+  // record de temps de la bille ★ par niveau de course (0.2.12) : c'est la colonne « Record » des stats
+  P.bestTime = function (levelId) { const b = st && st.stats.byLevel[levelId]; return b && b.best ? b.best : 0; };
+  P.setBest = function (levelId, t) {
+    const b = lvlStat(levelId);
+    if (t > 0 && (!b.best || t < b.best)) { b.best = t; save(true); return true; }
+    return false;
+  };
   /* fin d'une course (main.js) — info : levelId, count, rank (0 = éliminée ou abandon), time, myName, winnerName, raceTime, out */
   P.onRaceEnd = function (info) {
     const s = st.stats, big = info.count >= 30;
