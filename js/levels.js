@@ -3,7 +3,7 @@
   'use strict';
 
   MR.LEVELS = [];
-  // zones : 10 niveaux de course chacune (0.2.5 : seule la Zone Disco existe, niveaux 8 à 10 à venir)
+  // zones : 10 niveaux de course chacune (0.2.9 : seule la Zone Disco existe, niveaux 9 et 10 à venir)
   MR.ZONES = [{ id: 'disco', name: 'Zone Disco', size: 10 }];
   MR.registerLevel = function (def) { if (!def.zone) def.zone = 'disco'; MR.LEVELS.push(def); };
   MR.levelById = function (id) {
@@ -15,7 +15,7 @@
   function Builder(W, H) {
     const L = {
       W: W, H: H, gravity: 1000, marbleR: 16,
-      segs: [], circles: [], arms: [], hubs: [], boosts: [], pistons: [], sliders: [], zones: [], shapes: [], signs: [], voids: [], calm: [],
+      segs: [], circles: [], arms: [], hubs: [], boosts: [], pistons: [], sliders: [], zones: [], shapes: [], signs: [], voids: [], calm: [], liquids: [],
       spawn: null, finish: null, startView: { x: W / 2, y: 300 }
     };
     L.seg = function (ax, ay, bx, by, o) {
@@ -82,6 +82,27 @@
     // auvent d'un demi-tour de rayon 125 centré en (cx, cy) : side = 1 virage à droite, -1 virage à gauche
     L.hood = function (cx, cy, side, kind) {
       L.seg(cx - 21.7, cy - 123, cx - side * 130 - (side < 0 ? 22 : 0), cy - 172, { kind: kind || 'wall', e: 0.3 });
+    };
+    // flipper (0.2.9) : bras pivotant en (px, py), au repos à l'angle a0, qui se lève d'un coup jusqu'à a1 sur le temps
+    L.flipper = function (px, py, len, a0, a1, o) {
+      o = o || {};
+      L.arms.push({ px: px, py: py, len: len, angle: a0, omega: 0, t: o.t || 11, e: 0.25, kind: 'flipper', side: a0 < Math.PI / 2 ? 1 : -1,
+        flip: { a0: a0, a1: a1, every: o.every || 2, off: o.off || 0, upSpeed: o.upSpeed || 9, downSpeed: o.downSpeed || 5, hold: o.hold || 0.22 } });
+      L.circles.push({ x: px, y: py, r: (o.t || 11) + 3, e: 0.3, kick: 0, kind: 'fliphub' });
+    };
+    // fiole (0.2.9) : verre de largeur w (intérieur x0..x1), fond arrondi en yBot, bec verseur côté `side` (-1 gauche, 1 droite)
+    // à la hauteur lipY ; le liquide monte jusqu'à yTop, porte les billes, les déverse par le bec, puis redescend.
+    L.flask = function (x0, x1, yWall, lipY, yBot, side, o) {
+      o = o || {};
+      const R = (x1 - x0) / 2, cx = (x0 + x1) / 2, cy = yBot - R;
+      const lipX = side < 0 ? x0 : x1, backX = side < 0 ? x1 : x0;
+      L.seg(lipX, lipY, lipX, cy, { kind: 'glass', e: 0.25, t: 7 });
+      L.seg(backX, yWall, backX, cy, { kind: 'glass', e: 0.25, t: 7 });
+      L.arc(cx, cy, R, 0, 180, 12, { kind: 'glass', e: 0.25, t: 7 });
+      L.liquids.push({ x0: x0 + 8, x1: x1 - 8, yTop: o.yTop != null ? o.yTop : lipY - 34, yBot: yBot, lipX: lipX, lipY: lipY, side: side,
+        cx: cx, cy: cy, R: R, empty: o.empty || 1.2, fill: o.fill || 3, hold: o.hold || 3, drain: o.drain || 1.8, off: o.off || 0,
+        buoy: o.buoy || 2.1, drag: o.drag || 3, flow: (o.flow || 700) * side, c1: o.c1 || '#ff4fa8', c2: o.c2 || '#6a1fd6' });
+      L.calm.push({ x0: x0, y0: Math.min(yWall, lipY) - 40, x1: x1, y1: yBot + 10 });
     };
     // marche d'escalier lumineuse
     L.step = function (x0, y0, x1, y1) { L.segs.push({ ax: x0, ay: y0, bx: x1, by: y1, t: 7, e: 0.35, kind: 'step' }); };
@@ -979,6 +1000,102 @@
       L.poly([[900, my], [1340, my + 130], [1340, H]], { kind: 'finish', e: 0.3 });
       L.voids.push([[0, 3300 + o], [100, 3300 + o], [700, my], [260, my + 130], [260, H], [0, H]]);
       L.voids.push([[1600, 3300 + o], [1500, 3300 + o], [900, my], [1340, my + 130], [1340, H], [1600, H]]);
+      L.finish = {
+        y: my + 25,
+        mouth: { x0: 700, x1: 900, y: my },
+        basin: [[700, my], [900, my], [1340, my + 130], [1340, H - 10], [260, H - 10], [260, my + 130]],
+        box: { x0: 260, x1: 1340, y0: my, y1: H - 10 },
+        label: { text: 'ARRIVÉE', x: 800, y: my + 210, size: 64 }
+      };
+      return L;
+    }
+  });
+
+  /* ------------------------------------------------------------------ *
+   * Niveau 8 — Bar Disco (0.2.9) : deux tables de flipper et deux fioles à cocktail.
+   * Enclos → 1re table (bumpers, slingshots, flippers en rythme) → aiguillage vers deux fioles qui se remplissent,
+   * portent les billes jusqu'au bec et les déversent → grand bol de regroupement → 2e table de flipper → arrivée.
+   * ------------------------------------------------------------------ */
+  MR.registerLevel({
+    id: 'bar-disco',
+    num: 8,
+    zone: 'disco',
+    name: 'Bar Disco',
+    build: function () {
+      const W = 1600, H = 3400;
+      const L = Builder(W, H);
+      L.gravity = 1000;
+      L.marbleR = 16;
+      L.theme = 'bar';
+      const T = MR.L8 || {};
+      const mir = function (x) { return W - x; };
+      L.seg(0, 0, W, 0, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, 0, W, H, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, H, 0, H, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(0, H, 0, 0, { kind: 'frame', t: 10, e: 0.4 });
+
+      // départ
+      L.seg(560, 80, 560, 300, { kind: 'wall', e: 0.2 });
+      L.seg(1040, 80, 1040, 300, { kind: 'wall', e: 0.2 });
+      L.door(560, 300, 240, 0, Math.PI / 2, 7);
+      L.door(1040, 300, 240, Math.PI, Math.PI / 2, -7);
+      L.spawn = { x0: 586, x1: 1014, y: 277, gap: 34 };
+      L.startView = { x: 800, y: 520 };
+      L.sign('BAR DISCO', 800, 44, 32, '#ffb347');
+
+      // côtés de la salle, de haut en bas
+      L.seg(180, 60, 180, 2720, { kind: 'wall', e: 0.35 });
+      L.seg(mir(180), 60, mir(180), 2720, { kind: 'wall', e: 0.35 });
+
+      // 1re table : bumpers, slingshots et deux flippers qui frappent sur le temps
+      const K = T.bump || 250;
+      L.bumper(800, 560, 42, K); L.bumper(625, 720, 40, K); L.bumper(975, 720, 40, K);
+      L.bumper(400, 520, 30, K * 0.9); L.bumper(mir(400), 520, 30, K * 0.9);
+      L.sling(250, 830, 370, 950, 340); L.sling(mir(250), 830, mir(370), 950, 340);
+      L.seg(180, 1000, 640, 1140, { kind: 'funnel', e: 0.25 });
+      L.seg(mir(180), 1000, mir(640), 1140, { kind: 'funnel', e: 0.25 });
+      L.flipper(640, 1140, 120, 0.5, -0.45, { off: 0 });
+      L.flipper(mir(640), 1140, 120, Math.PI - 0.5, Math.PI + 0.45, { off: 0 });
+      L.seg(640, 1140, 720, 1250, { kind: 'wall', e: 0.3 });
+      L.seg(mir(640), 1140, mir(720), 1250, { kind: 'wall', e: 0.3 });
+
+      // aiguillage vers les deux fioles
+      L.seg(800, 1262, 545, 1385, { kind: 'ramp', e: 0.25 });
+      L.seg(800, 1262, mir(545), 1385, { kind: 'ramp', e: 0.25 });
+      // fioles : le liquide monte, porte les billes et les déverse par le bec (côté extérieur)
+      L.seg(300, 1250, 300, 1405, { kind: 'glass', e: 0.25 });
+      L.seg(mir(300), 1250, mir(300), 1405, { kind: 'glass', e: 0.25 });
+      const fo = { fill: T.fill || 3, hold: T.hold || 3.2, empty: 1.2, drain: 1.8, flow: T.flow || 700 };
+      L.flask(300, 560, 1395, 1478, 2000, -1, Object.assign({}, fo, { off: 0, c1: '#ff4fa8', c2: '#6a1fd6' }));
+      L.flask(mir(560), mir(300), 1395, 1478, 2000, 1, Object.assign({}, fo, { off: 4.6, c1: '#ffb020', c2: '#e0283c' }));
+      L.sign('COCKTAILS', 800, 1560, 26, '#ff6ac1');
+
+      // grand bol : les billes se regroupent avant la 2e table
+      L.seg(180, 2120, 720, 2370, { kind: 'funnel', e: 0.25 });
+      L.seg(mir(180), 2120, mir(720), 2370, { kind: 'funnel', e: 0.25 });
+      L.hold(720, 2380, 880, 2380, -180, 0, { x0: 180, y0: 2000, x1: 1420, y1: 2390 },
+        { ratio: 0.85, maxWait: T.wait || 12, label: { x: 800, y: 2300 } });
+      // logement de la porte une fois ouverte : fermé, pour qu'aucune bille ne se coince entre elle et le bol
+      L.seg(540, 2286, 540, 2386, { kind: 'wall', e: 0.3 });
+
+      // 2e table : bumpers et grands flippers, la sortie passe entre eux
+      L.peg(680, 2470, 12); L.peg(920, 2470, 12);
+      L.bumper(520, 2560, 34, K); L.bumper(1080, 2560, 34, K); L.bumper(800, 2690, 40, K);
+      L.sling(230, 2600, 330, 2700, 320); L.sling(mir(230), 2600, mir(330), 2700, 320);
+      L.seg(180, 2720, 590, 2880, { kind: 'funnel', e: 0.25 });
+      L.seg(mir(180), 2720, mir(590), 2880, { kind: 'funnel', e: 0.25 });
+      L.flipper(590, 2880, 140, 0.42, -0.5, { off: 1 });
+      L.flipper(mir(590), 2880, 140, Math.PI - 0.42, Math.PI + 0.5, { off: 1 });
+
+      // arrivée
+      const my = 3010;
+      L.seg(590, 2880, 700, my, { kind: 'wall', e: 0.3 });
+      L.seg(mir(590), 2880, 900, my, { kind: 'wall', e: 0.3 });
+      L.calm.push({ x0: 600, y0: 2900, x1: 1000, y1: my + 20 });
+      L.poly([[700, my], [260, my + 130], [260, H]], { kind: 'finish', e: 0.3 });
+      L.poly([[900, my], [1340, my + 130], [1340, H]], { kind: 'finish', e: 0.3 });
+      L.voids.push([[0, 2720], [180, 2720], [590, 2880], [700, my], [260, my + 130], [260, H], [0, H]]);
+      L.voids.push([[1600, 2720], [1420, 2720], [1010, 2880], [900, my], [1340, my + 130], [1340, H], [1600, H]]);
       L.finish = {
         y: my + 25,
         mouth: { x0: 700, x1: 900, y: my },

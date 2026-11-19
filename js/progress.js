@@ -279,7 +279,7 @@
     if (rank >= 1 && rank <= 10) return 120;
     return 80;
   };
-  P.PACK_XP = { normal: 50, premium: 100, ultra: 200 };
+  P.PACK_XP = { normal: 100, premium: 200, ultra: 300 };   // 0.2.9
   // ouverture d'un paquet (cards.js) : les gains sont contrôlés à la fin de la révélation (pour ne rien dévoiler)
   P.onPackOpened = function (type) {
     const s = st.stats;
@@ -288,7 +288,7 @@
     if (type === 'ultra') s.ultra++;
     questAdd('packs3', 1);
     save(true);
-    P.addXP(P.PACK_XP[type] || 50, 'Paquet');
+    P.addXP(P.PACK_XP[type] || 100, 'Paquet');
   };
   // run terminée (main.js) : tous les niveaux enchaînés
   P.onRunEnd = function (pos) {

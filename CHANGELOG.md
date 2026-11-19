@@ -1,5 +1,17 @@
 # MagicRace — journal des versions
 
+## 0.2.9 — 19 novembre 2026
+- Nouveau niveau 8 « Bar Disco », dans un bar : étagères de bouteilles rétroéclairées, néons de cocktail, lampes suspendues et comptoir.
+  - 1re table de flipper : bumpers, slingshots et deux flippers qui frappent sur le temps de la musique, les billes passent entre eux ;
+  - deux fioles à cocktail : elles se remplissent d'un liquide qui fait remonter les billes, les déverse par le bec, puis se vident (les billes restées dedans retombent au fond). Le liquide ondule et fait des bulles, et il déborde en jet ;
+  - un grand bol qui regroupe les billes avant d'ouvrir la porte ;
+  - 2e table de flipper avec de grands flippers, et l'arrivée juste en dessous.
+- Ouvrir un paquet rapporte maintenant 100 XP (premium 200 XP, ultra 300 XP).
+- 3 nouvelles billes, 167 cartes au total :
+  - légendaire « Ténèbres » : un abîme qui tourbillonne, traversé de failles rouges, où deux yeux s'ouvrent de temps en temps ;
+  - épique « Obscur » : une ombre vivante avec des braises violettes ;
+  - rare « Dark » : obsidienne noire aux veines violettes.
+
 ## 0.2.8 — 19 novembre 2026
 - Corrigé : dans l'éditeur de bille, au-delà d'environ 60 billes de collection obtenues, les dernières s'affichaient comme de simples boules de couleur au lieu de leur vrai motif. Les aperçus sont maintenant dessinés par paquets, quel que soit le nombre de billes.
 

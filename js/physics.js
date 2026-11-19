@@ -36,6 +36,8 @@
       // cercles tournants à trou (niveau 4) : seul le plus petit encore entier est solide
       rings: (def.rings || []).map(function (r) { return Object.assign({ flash: 0, alive: true, pulse: 0, gap0: r.gap, omega0: r.omega }, r); }),
       ringIdx: 0,
+      // fioles (niveau 8) : un liquide monte, porte les billes jusqu'au bec verseur, puis se vide
+      liquids: (def.liquids || []).map(function (l) { return Object.assign({ level: l.yBot, q: 0, vlev: 0, hot: 0 }, l); }),
       // niveau 4 : rebonds parfaits (aucune perte), cercles figés et fermés avant le départ, vitesse constante en course
       elastic: !!def.elastic,
       locked: !!def.lockUntilStart,
@@ -152,6 +154,17 @@
     // éléments animés (moulins, trappes)
     for (k = 0; k < w.arms.length; k++) {
       const a = w.arms[k];
+      if (a.flip) {
+        // flipper : se lève d'un coup sur le temps de la musique (main.js règle flip.until), puis redescend
+        const f = a.flip, up = w.t < (f.until || 0);
+        const tgt = up ? f.a1 : f.a0, sp = (up ? f.upSpeed : f.downSpeed) * dt;
+        const d = tgt - a.angle;
+        const na = Math.abs(d) <= sp ? tgt : a.angle + Math.sign(d) * sp;
+        a.omega = dt > 0 ? (na - a.angle) / dt : 0;
+        a.angle = na;
+        updArm(a);
+        continue;
+      }
       if (a.cycle) {
         // porte de sas : fermée, s'ouvre, reste ouverte, se referme, en boucle
         const c = a.cycle, ph = (w.t + c.off) % c.period;
@@ -204,6 +217,20 @@
       const c = w.circles[k];
       if (c.spin) { c.omega = c.spin * Math.sin(w.t * c.freq + (c.ph || 0)); c.angle = (c.angle || 0) + c.omega * dt; }
       else if (c.rot) { c.omega = c.rot; c.angle = (c.angle || 0) + c.rot * dt; }
+    }
+    // niveau des fioles : vide, se remplit, déborde un moment par le bec, se vide
+    for (k = 0; k < w.liquids.length; k++) {
+      const l = w.liquids[k], P = l.empty + l.fill + l.hold + l.drain;
+      const ph = ((w.t + (l.off || 0)) % P + P) % P;
+      let q;
+      if (ph < l.empty) q = 0;
+      else if (ph < l.empty + l.fill) { q = (ph - l.empty) / l.fill; q = q * q * (3 - 2 * q); }
+      else if (ph < l.empty + l.fill + l.hold) q = 1;
+      else { q = 1 - (ph - l.empty - l.fill - l.hold) / l.drain; q = q * q * (3 - 2 * q); }
+      const lev = l.yBot + (l.yTop - l.yBot) * q;
+      l.vlev = dt > 0 ? (lev - l.level) / dt : 0;
+      l.level = lev; l.q = q;
+      l.spill = ph >= l.empty + l.fill - 0.15 && ph < l.empty + l.fill + l.hold;
     }
     if (!w.locked) for (k = w.ringIdx; k < w.rings.length; k++) w.rings[k].angle += w.rings[k].omega * dt;
     const ring = w.rings[w.ringIdx] || null;
@@ -322,6 +349,18 @@
           m.vx += z.ax * dt; m.vy += z.ay * dt;
           z.hot = 1;
         }
+      }
+      // liquide des fioles : poussée d'Archimède (la bille flotte à moitié immergée), freinage, courant vers le bec
+      for (k = 0; k < w.liquids.length; k++) {
+        const l = w.liquids[k];
+        if (m.held || m.x < l.x0 || m.x > l.x1 || m.y + m.r < l.level || m.y > l.yBot + m.r) continue;
+        const f = MR.clamp((m.y + m.r - l.level) / (2 * m.r), 0, 1);
+        m.vy -= g * l.buoy * f * dt;
+        const dr = Math.min(1, l.drag * f * dt);
+        m.vx -= m.vx * dr;
+        m.vy -= (m.vy - Math.min(0, l.vlev)) * dr;
+        if (m.y - l.level < m.r * 2.5) m.vx += l.flow * f * dt;
+        m.wet = 1; l.hot = 1;
       }
       // vitesse constante (niveau 4 en course) : chaque bille garde la même vitesse, seule sa direction change
       if (w.constSpeed && !m.held) {

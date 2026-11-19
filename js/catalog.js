@@ -82,6 +82,7 @@
     { id: 'cassoulet',  rarity: 'rare',      name: 'Cassoulet',        accent: '#b8652a', blurb: 'Haricots, saucisse et croûte dorée' },
     { id: 'cafecreme',  rarity: 'rare',      name: 'Café Crème',       accent: '#c99a6a', blurb: 'Café noir et tourbillon de crème' },
     { id: 'pizza',      rarity: 'rare',      name: 'Pizza',            accent: '#e8a43a', blurb: 'Fromage fondu, pepperoni et basilic' },
+    { id: 'dark',       rarity: 'rare',      name: 'Dark',             accent: '#3a2a5a', blurb: 'Obsidienne mate et veines violettes' },
     // épiques
     { id: 'lavalamp',   rarity: 'epic',      name: 'Lampe à lave',     accent: '#ff7a3d', blurb: 'La cire qui monte, années 70' },
     { id: 'aurore',     rarity: 'epic',      name: 'Aurore boréale',   accent: '#3dffb0', blurb: 'Rideaux de lumière sur la neige' },
@@ -103,6 +104,7 @@
     { id: 'ectoplasme', rarity: 'epic',      name: 'Ectoplasme',       accent: '#9dff2e', blurb: 'Matière fluo vivante et cellules sombres' },
     { id: 'oeilloup',   rarity: 'epic',      name: 'Œil de loup',      accent: '#ffb21a', blurb: 'Un regard ambré qui guette la course' },
     { id: 'paillettes', rarity: 'epic',      name: 'Paillettes d’or',  accent: '#ffd34a', blurb: 'Mille paillettes qui scintillent' },
+    { id: 'obscur',     rarity: 'epic',      name: 'Obscur',           accent: '#5a2aa8', blurb: 'Une ombre vivante et ses braises violettes' },
     // légendaires
     { id: 'nebula',     rarity: 'legendary', name: 'Nébuleuse',        accent: '#b46bff', blurb: 'Gaz cosmiques et étoiles' },
     { id: 'magma',      rarity: 'legendary', name: 'Magma',            accent: '#ff6a1f', blurb: 'Croûte basaltique, fissures de lave' },
@@ -118,7 +120,8 @@
     { id: 'rypoint',    rarity: 'legendary', name: 'Rypoint',          accent: '#ff7a1a', blurb: 'Le protogen aux yeux d’or' },
     { id: 'ultrasmoke', rarity: 'legendary', name: 'Ultra smoke',      accent: '#b46bff', blurb: 'Fumée vivante aux reflets néon' },
     { id: 'galaxium',   rarity: 'legendary', name: 'Galaxium',         accent: '#9a7bff', blurb: 'Une galaxie spirale noyée de nébuleuses' },
-    { id: 'oeildragon', rarity: 'legendary', name: 'Œil de dragon',    accent: '#ff7a1a', blurb: 'Il s’ouvre de temps en temps… et il te regarde' }
+    { id: 'oeildragon', rarity: 'legendary', name: 'Œil de dragon',    accent: '#ff7a1a', blurb: 'Il s’ouvre de temps en temps… et il te regarde' },
+    { id: 'tenebres',   rarity: 'legendary', name: 'Ténèbres',         accent: '#9a1a4a', blurb: 'Un abîme sans fond… où quelque chose ouvre les yeux' }
   ];
   MR.COLLECTIBLE_SKINS = MR.SKINS.filter(function (s) { return !!s.rarity; });
   MR.skin = function (id) {

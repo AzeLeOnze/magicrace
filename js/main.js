@@ -352,6 +352,14 @@
       const h = W.sliders[k].hold;
       if (h && h.beat) h.open = ((bn + (h.beatOff || 0)) % (h.every || 2)) !== 0;
     }
+    // flippers (niveau 8) : un coup sec sur un temps sur « every »
+    for (let k = 0; k < W.arms.length; k++) {
+      const f = W.arms[k].flip;
+      if (f && W.beatOn && f.lastBeat !== bn && ((bn + (f.off || 0)) % (f.every || 2)) === 0) {
+        f.lastBeat = bn;
+        f.until = W.t + (f.hold || 0.22);
+      }
+    }
   }
   G.setBeat = setBeat;
 
@@ -865,7 +873,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : aperçus des billes de collection corrigés'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveau 8 « Bar Disco » (flippers et fioles), billes Ténèbres, Obscur et Dark'); }, 900);
     }
 
     const unlock = function () {

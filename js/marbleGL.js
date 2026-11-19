@@ -1807,6 +1807,82 @@ float sdStar5(vec2 p, float r, float rf){
   return col;
 }`;
 
+  /* ================= 0.2.9 : les billes de l'ombre ================= */
+  // Dark (rare) : obsidienne mate, fumée violette figée et veines qui palpitent à peine
+  SKINS.dark = SIG + `{
+  vec3 q = s * 2.2 + u_seed * 5.0;
+  float f = fbm(q + vec3(0.0, 0.0, u_time * 0.05));
+  float sm = smoothstep(0.45, 0.78, fbm3(q * 1.5 + f * 2.0));
+  vec3 col = vec3(0.016, 0.014, 0.024) + vec3(0.13, 0.05, 0.22) * sm;
+  col *= 0.6 + 0.6 * diff;
+  vec3 R = reflect(vec3(0.0, 0.0, -1.0), n);
+  col += vec3(0.25, 0.22, 0.35) * smoothstep(0.0, 0.05, R.y) * smoothstep(0.7, 0.2, R.y) * 0.25 * (1.0 - r * 0.5);
+  float vein = smoothstep(0.03, 0.0, abs(f - 0.5));
+  col += vec3(0.5, 0.18, 0.85) * vein * (0.55 + 0.35 * sin(u_time * 0.8 + u_seed * 9.0));
+  col += vec3(0.9, 0.85, 1.0) * spec * 1.1 + vec3(0.35, 0.25, 0.6) * fres * 0.6 + vec3(1.0) * glassArc(p) * 0.15;
+  return col;
+}`;
+
+  // Obscur (épique) : une ombre vivante, volutes plus noires que le noir et braises violettes qui montent
+  SKINS.obscur = SIG + `{
+  float t = u_time * 0.2;
+  vec3 q = s * 1.7 + u_seed * 4.0;
+  vec3 w = vec3(fbm3(q + vec3(t, 0.0, 0.0)), fbm3(q + vec3(4.1, -t, 2.0)), fbm3(q + vec3(1.3, 6.2, t)));
+  float d = fbm(q + 2.6 * w);
+  float tend = pow(smoothstep(0.42, 0.72, d), 1.5);
+  vec3 smoke = mix(vec3(0.07, 0.02, 0.15), vec3(0.24, 0.05, 0.42), w.y);
+  vec3 col = vec3(0.004, 0.003, 0.01) + smoke * tend * 1.5;
+  col += vec3(0.55, 0.25, 1.0) * smoothstep(0.035, 0.0, abs(d - 0.6)) * 0.5;
+  col *= 0.5 + 0.5 * smoothstep(0.0, 0.75, r);
+  vec3 ep = vec3(p * 7.0, 0.0) + vec3(0.0, -u_time * 0.5, u_seed * 9.0);
+  vec3 ec = floor(ep); float h = hash13(ec);
+  vec3 ef = fract(ep) - 0.5 - (hash33(ec) - 0.5) * 0.6;
+  col += vec3(0.75, 0.35, 1.0) * step(0.8, h) * smoothstep(0.08, 0.0, length(ef.xy)) * (0.5 + 0.5 * sin(u_time * 4.0 + h * 40.0));
+  col *= 0.7 + 0.4 * diff;
+  col += vec3(0.45, 0.2, 0.9) * smoothstep(0.82, 1.0, r) * 0.55 + vec3(0.8, 0.7, 1.0) * spec * 0.8 + vec3(1.0) * glassArc(p) * 0.12;
+  return col;
+}`;
+
+  // Ténèbres (légendaire) : un abîme qui tourbillonne, des failles de lumière rouge, des cendres,
+  // et deux yeux qui s'ouvrent de temps en temps au fond du noir (ils restent tournés vers nous).
+  SKINS.tenebres = SIG + `{
+  float t = u_time;
+  float wob = sin(u_angle) * 0.18;
+  float cw = cos(wob), sw = sin(wob);
+  vec2 fq = vec2(cw * p.x - sw * p.y, sw * p.x + cw * p.y);
+  vec2 sp = s.xy; float rr = length(sp), ang = atan(sp.y, sp.x);
+  float k = ang * 3.0 + rr * 6.0 - t * 0.6;
+  float swirl = fbm3(vec3(cos(k) * 1.2, sin(k) * 1.2, rr * 3.0 + u_seed * 4.0));
+  float tendr = smoothstep(0.42, 0.7, swirl) * smoothstep(0.12, 0.9, rr);
+  vec3 col = mix(vec3(0.1, 0.0, 0.16), vec3(0.32, 0.02, 0.14), swirl) * tendr * 0.85;
+  vec3 qs = s * 1.6 + u_seed * 3.0;
+  vec3 v = voronoi(qs * 1.8 + vec3(0.0, 0.0, t * 0.05));
+  float crack = smoothstep(0.05, 0.0, v.y - v.x) * smoothstep(0.55, 0.75, fbm3(qs * 2.0 + t * 0.1));
+  float pulse = 0.6 + 0.4 * sin(t * 1.7 + u_seed * 6.0);
+  col += vec3(1.0, 0.1, 0.25) * crack * pulse;
+  col *= 0.15 + 0.85 * smoothstep(0.0, 0.55, rr);
+  float ph = fract(t / 7.0 + u_seed * 2.1);
+  float open = smoothstep(0.0, 0.08, ph) * (1.0 - smoothstep(0.42, 0.5, ph));
+  float eye = 0.0, glow = 0.0, pup = 0.0;
+  for (int i = 0; i < 2; i++){
+    float sx = i == 0 ? -1.0 : 1.0;
+    vec2 e = fq - vec2(0.26 * sx, 0.06);
+    float tl = -0.3 * sx;
+    vec2 er = vec2(e.x * cos(tl) - e.y * sin(tl), e.x * sin(tl) + e.y * cos(tl));
+    float el = length(vec2(er.x / 0.17, er.y / (0.065 * open + 0.002)));
+    eye = max(eye, smoothstep(1.05, 0.9, el));
+    glow += smoothstep(2.6, 0.6, length(er / vec2(0.2, 0.1))) * open;
+    pup = max(pup, smoothstep(0.022, 0.012, abs(er.x)) * step(el, 1.0));
+  }
+  col += vec3(1.0, 0.25, 0.08) * eye * (1.0 - pup * 0.95) * 1.7 + vec3(0.9, 0.05, 0.12) * glow * 0.28;
+  vec3 ap = vec3(p * 9.0, 0.0) + vec3(0.0, -t * 0.25, u_seed * 7.0);
+  vec3 ac = floor(ap); float h = hash13(ac);
+  col += vec3(0.55, 0.5, 0.6) * step(0.86, h) * smoothstep(0.06, 0.0, length(fract(ap.xy) - 0.5)) * 0.5;
+  col += vec3(0.55, 0.0, 0.45) * smoothstep(0.8, 1.0, r) * (0.45 + 0.35 * pulse);
+  col += vec3(0.9, 0.7, 1.0) * spec * 0.6 + vec3(1.0) * glassArc(p) * 0.1;
+  return col;
+}`;
+
   /* ================= 0.2.6 : bille avec l'image du joueur ================= */
   // L'image (64×64) est collée sur la face de la bille et tourne avec elle, sous un vernis de verre.
   SKINS.photo = `
