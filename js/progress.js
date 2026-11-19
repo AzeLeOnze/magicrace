@@ -18,6 +18,20 @@
     return { level: lv, into: rest, need: P.need(lv) };
   };
   P.xpForLevel = function (lv) { let t = 0; for (let i = 1; i < lv; i++) t += P.need(i); return t; };
+  // appellation de chaque niveau du compte (0.2.6) ; au-delà du dernier, on garde le dernier titre
+  P.TITLES = [
+    'Mini disco I', 'Mini disco II', 'Bébé disco I', 'Bébé disco II', 'Discoamateur I', 'Discoamateur II',
+    'Discomaniaque I', 'Discomaniaque II', 'Discomaniaque III',
+    'Discodancer I', 'Discodancer II', 'Discodancer III', 'Discodancer IV', 'Discodancer V',
+    'Accro au Dancefloor I', 'Accro au Dancefloor II', 'Accro au Dancefloor III', 'Accro au Dancefloor IV',
+    'Discobreaker I', 'Discobreaker II', 'Discobreaker III',
+    'Ultra Discoman I', 'Ultra Discoman II', 'Ultra Discoman III',
+    'Roi du Disco I', 'Roi du Disco II', 'Roi du Disco III',
+    'Légende du Groove I', 'Légende du Groove II', 'Légende du Groove III',
+    'Maître des Facettes I', 'Maître des Facettes II', 'Maître des Facettes III',
+    'Disco Immortel', 'Dieu du Disco'
+  ];
+  P.title = function (lv) { return P.TITLES[Math.max(1, Math.min(lv || 1, P.TITLES.length)) - 1]; };
   // récompenses en atteignant un niveau : toujours un paquet, plus des bonus tous les 5 niveaux (le cycle recommence à chaque centaine)
   P.rewardsFor = function (lv) {
     const r = { packs: 1, premium: 0, ultra: 0, storage: 0 };

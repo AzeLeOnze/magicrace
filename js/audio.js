@@ -486,13 +486,18 @@
         if (!voice(1)) return;
         d = out(pan);
         const f = midi(MR.pick([60, 62, 64, 67, 69, 72, 74, 76, 79, 81]));
-        [[1, 0.24, 1.1], [2, 0.08, 0.7], [3, 0.04, 0.45], [4.01, 0.02, 0.3]].forEach(function (h) {
-          send(tone(h[0] === 1 ? 'triangle' : 'sine', f * h[0], t, h[2] === 1.1 ? h[1] * v : h[1] * v, h[2], d), sfxRev, 0.3);
+        // attaque douce (10 ms) et pas de bruit de marteau : sinon on entend un « tic » au début de la note
+        [[1, 0.22, 1.1], [2, 0.07, 0.7], [3, 0.035, 0.45], [4.01, 0.015, 0.3]].forEach(function (h) {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = h[0] === 1 ? 'triangle' : 'sine';
+          o.frequency.setValueAtTime(f * h[0], t);
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(h[1] * v, t + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + h[2]);
+          o.connect(g); g.connect(d);
+          o.start(t); o.stop(t + h[2] + 0.05);
+          send(g, sfxRev, 0.3);
         });
-        const hn = noise(t, 0.02), hp = ctx.createBiquadFilter(), hg = ctx.createGain();
-        hp.type = 'highpass'; hp.frequency.value = 3000;
-        hg.gain.setValueAtTime(0.05 * v, t); hg.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
-        hn.connect(hp); hp.connect(hg); hg.connect(d);
         break;
       }
       case 'cowbell': {

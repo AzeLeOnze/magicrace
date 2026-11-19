@@ -422,6 +422,25 @@
     });
     $('#edToCards').addEventListener('click', function () { MR.Packs.show('coll'); });
 
+    // image perso : réduite à 64×64 et compressée en JPEG avant d'être gardée
+    const file = $('#edPhotoFile');
+    $('#edPhoto').addEventListener('click', function () {
+      if (!draft) return;
+      if (draft.img && draft.skin !== 'photo') { draft.skin = 'photo'; syncEditor(); }
+      else file.click();
+    });
+    $('#edPhotoX').addEventListener('click', function () { file.click(); });
+    file.addEventListener('change', function () {
+      const f = file.files && file.files[0];
+      file.value = '';
+      if (!f || !draft) return;
+      const target = draft;
+      MR.compressImage(f, target.color).then(function (url) {
+        target.img = url; target.skin = 'photo';
+        if (draft === target) syncEditor();
+      }).catch(function () { UI.toast('Cette image ne peut pas être lue'); });
+    });
+
     chips($('#edTrail'), MR.TRAILS, 'trail');
     chips($('#edSound'), MR.SOUNDS, 'sound', function (id) { MR.Audio.unlock(); MR.Audio.hit(id, 0.85, 0); });
     chips($('#edOutline'), MR.OUTLINES, 'outline');
@@ -518,6 +537,31 @@
       });
     });
     $('#edOutlineColor').value = draft.outlineColor;
+    const pb = $('#edPhoto');
+    pb.classList.toggle('on', draft.skin === 'photo');
+    pb.setAttribute('aria-pressed', String(draft.skin === 'photo'));
+    $('#edPhotoLbl').textContent = draft.img ? 'Mon image' : 'Mettre ma propre image';
+    $('#edPhotoX').hidden = !draft.img;
+    drawPhotoThumb(draft.img);
+  }
+  let thumbSrc = undefined;
+  function drawPhotoThumb(src) {
+    if (thumbSrc === src) return;
+    thumbSrc = src;
+    const cv = $('#edPhotoPrev'), c = cv.getContext('2d');
+    c.clearRect(0, 0, 56, 56);
+    if (!src) {
+      c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(28, 17); c.lineTo(28, 39); c.moveTo(17, 28); c.lineTo(39, 28); c.stroke();
+      return;
+    }
+    const im = new Image();
+    im.onload = function () {
+      if (thumbSrc !== src) return;
+      c.save(); c.beginPath(); c.arc(28, 28, 28, 0, MR.TAU); c.clip();
+      c.drawImage(im, 0, 0, 56, 56); c.restore();
+    };
+    im.src = src;
   }
 
   UI.openEditor = function (id) {

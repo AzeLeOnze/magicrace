@@ -31,7 +31,7 @@
   };
   // halo des billes dans la couche bloom (réduit en 0.0.3)
   const EMISSIVE = { solid: 0.12, nebula: 0.2, magma: 0.42, opal: 0.16, plasma: 0.38, disco: 0.2,
-    lavalamp: 0.3, aurore: 0.2, rypoint: 0.25, ultrasmoke: 0.35, galaxium: 0.3, neonveines: 0.32, encrefluo: 0.3, ectoplasme: 0.34, sunshine: 0.4, deepfire: 0.35, electrique: 0.3, diamant: 0.24, hypnose: 0.26, abysses: 0.2, chrome: 0.16, glace: 0.16 };
+    lavalamp: 0.3, aurore: 0.2, rypoint: 0.25, ultrasmoke: 0.35, galaxium: 0.3, neonveines: 0.32, encrefluo: 0.3, ectoplasme: 0.34, oeildragon: 0.3, paillettes: 0.26, oeilloup: 0.2, sunshine: 0.4, deepfire: 0.35, electrique: 0.3, diamant: 0.24, hypnose: 0.26, abysses: 0.2, chrome: 0.16, glace: 0.16 };
   const BEAMS = [[255, 62, 165], [63, 240, 255], [155, 92, 255], [255, 207, 74]];
   const TILE_HUES = [330, 185, 270, 45];
   const bokeh = [];

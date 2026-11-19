@@ -1,5 +1,17 @@
 # MagicRace — journal des versions
 
+## 0.2.6 — 19 novembre 2026
+- Ta propre image sur une bille : dans l'éditeur, « Mettre ma propre image ». L'image est recadrée en carré et réduite à 64 × 64 (JPEG très compressé, environ 2 Ko).
+- Paquets : une carte retournée à la main n'attend plus la fin de l'animation de la précédente. « Tout révéler » retourne les cartes une par une ; un 2e appui (« Tout d'un coup ! ») retourne toutes les autres en même temps. Les épiques et légendaires gardent leur grande révélation.
+- Son « Piano » : plus de « tic » au début de la note (attaque adoucie, bruit de marteau retiré).
+- Chaque niveau du compte a un titre, de « Mini disco I » au niveau 1 jusqu'à « Dieu du Disco » au niveau 35. Il s'affiche au passage de niveau, dans le profil, dans la liste des récompenses et dans le classement.
+- 12 nouvelles billes, 163 cartes au total :
+  - légendaire : « Œil de dragon », qui se ferme et se rouvre de temps en temps ;
+  - épiques : « Œil de loup » et « Paillettes d'or » ;
+  - rares : « Œil de chat », « Cassoulet » et « Café Crème » ;
+  - peu communes : « Point », « Café » (grains de café) et « Cola ». L'ancienne bille « Café » s'appelle maintenant « Latte » ;
+  - communes : Gris triste, Gris anthracite et Bleu nuit.
+
 ## 0.2.5 — 19 novembre 2026
 - Nouveau niveau 6 « Beach Party », sur la plage au lever du soleil :
   - des bols en cascade qui débordent les uns dans les autres ;

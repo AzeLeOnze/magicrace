@@ -41,7 +41,8 @@
     if (b) {
       $('#lvNum').textContent = String(i.level);
       b.style.setProperty('--p', (i.into / i.need * 100).toFixed(1));
-      b.setAttribute('aria-label', 'Profil : niveau ' + i.level + ', ' + fmt(i.into) + ' sur ' + fmt(i.need) + ' XP');
+      b.setAttribute('aria-label', 'Profil : niveau ' + i.level + ' (' + MR.Prog.title(i.level) + '), ' + fmt(i.into) + ' sur ' + fmt(i.need) + ' XP');
+      b.title = 'Niveau ' + i.level + ' · ' + MR.Prog.title(i.level) + ' — profil, quêtes, succès, stats et classement (L)';
     }
     const d = MR.Prog.daily();
     const g = $('#giftToggle');
@@ -106,6 +107,7 @@
     const el = $('#levelUp');
     shown++;
     el.innerHTML = '<div class="lu-card"><span class="lu-kicker">Niveau supérieur</span><span class="lu-num">' + n.level + '</span>' +
+      '<span class="lu-title">' + esc(MR.Prog.title(n.level)) + '</span>' +
       '<span class="lu-sub">Récompenses</span><div class="lu-rw">' + packIcons(n.rewards, true) +
       (n.rewards.storage ? '<span class="chip-xp store">+1 place de réserve (' + MR.Cards.max() + ' max)</span>' : '') + '</div>' +
       '<span class="lu-txt">' + esc(MR.Prog.rewardText(n.rewards)) + '</span>' +
@@ -167,7 +169,7 @@
     const next = MR.Prog.rewardsFor(i.level + 1);
     return '<div class="pr-id"><span class="pr-av" style="--c:' + (me ? me.color : '#ff3ea5') + '"></span><div><b>' + (acc ? esc(acc.pseudo) : 'Joueur sans compte') + '</b>' +
       '<span>' + (acc ? 'Compte MagicRace' : 'Crée un compte dans « Classement »') + '</span></div></div>' +
-      '<div class="pr-lv"><span class="pr-lvn">Niveau <b>' + i.level + '</b></span><div class="pr-bar"><i style="width:' + (i.into / i.need * 100).toFixed(1) + '%"></i></div>' +
+      '<div class="pr-lv"><span class="pr-lvn">Niveau <b>' + i.level + '</b><em class="pr-title">' + esc(MR.Prog.title(i.level)) + '</em></span><div class="pr-bar"><i style="width:' + (i.into / i.need * 100).toFixed(1) + '%"></i></div>' +
       '<span class="pr-xp">' + fmt(i.into) + ' / ' + fmt(i.need) + ' XP · total ' + fmt(MR.Prog.xp()) + ' XP</span>' +
       '<span class="pr-next">Niveau ' + (i.level + 1) + ' : ' + rewardChips(0, next) + '</span></div>';
   }
@@ -201,7 +203,7 @@
       const r = MR.Prog.rewardsFor(L);
       if (L > lv + 1 && !r.premium && !r.ultra && !r.storage) continue;
       shownN++;
-      h += '<li><span class="lv-n">Niveau ' + L + '</span><span class="lv-xp">' + fmt(MR.Prog.xpForLevel(L)) + ' XP</span><span class="lv-rw">' + rewardChips(0, r) + '</span></li>';
+      h += '<li><span class="lv-n">Niveau ' + L + '<small>' + esc(MR.Prog.title(L)) + '</small></span><span class="lv-xp">' + fmt(MR.Prog.xpForLevel(L)) + ' XP</span><span class="lv-rw">' + rewardChips(0, r) + '</span></li>';
     }
     h += '</ul><p class="hint">Chaque niveau donne un paquet ; tous les 5 niveaux, un paquet premium en plus ; au niveau 50 et 100, des paquets ultra. Réserve de paquets : <b>' + MR.Cards.max() + '</b> (+1 aux niveaux 10, 20… 100).</p></section>';
     return h;
@@ -311,7 +313,7 @@
     let h = '<ol class="lb">';
     boardRows.forEach(function (r, i) {
       h += '<li class="' + (r.me ? 'me' : '') + (i < 3 ? ' p' + (i + 1) : '') + '"><span class="lb-rk">' + (i + 1) + '</span><span class="lb-dot" style="--c:' + r.color + '"></span>' +
-        '<span class="lb-nm">' + esc(r.name) + (r.me ? ' <small>(toi)</small>' : '') + '</span><span class="lb-lv">Nv ' + r.level + '</span><span class="lb-xp">' + fmt(r.xp) + ' XP</span></li>';
+        '<span class="lb-nm">' + esc(r.name) + (r.me ? ' <small>(toi)</small>' : '') + '</span><span class="lb-lv" title="' + esc(MR.Prog.title(r.level)) + '">Nv ' + r.level + '<small>' + esc(MR.Prog.title(r.level)) + '</small></span><span class="lb-xp">' + fmt(r.xp) + ' XP</span></li>';
     });
     h += '</ol>';
     if (boardCache) h += '<p class="hint">Peut-être pas à jour : en attente du serveur…</p>';

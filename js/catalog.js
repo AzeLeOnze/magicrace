@@ -17,6 +17,7 @@
   // Apparences de bille. Chacune correspond à un shader de marbleGL.js (même id).
   MR.SKINS = [
     { id: 'solid',      rarity: null,        name: 'Couleur unie' },
+    { id: 'photo',      rarity: null,        name: 'Mon image' },
     // peu communes
     { id: 'creme',      rarity: 'uncommon',  name: 'Crème',            accent: '#ffc9d8', blurb: 'Chantilly à la fraise' },
     { id: 'gourmand',   rarity: 'uncommon',  name: 'Gourmand',         accent: '#d08a4a', blurb: 'Chocolat, caramel, vermicelles' },
@@ -40,7 +41,7 @@
     { id: 'lavande',    rarity: 'uncommon',  name: 'Lavande',          accent: '#b49cff', blurb: 'Champ de lavande en fleurs' },
     { id: 'pepite',     rarity: 'uncommon',  name: 'Pépite',           accent: '#ffc63a', blurb: 'Une pépite d’or brut qui brille' },
     { id: 'perle',      rarity: 'uncommon',  name: 'Perle',            accent: '#f4eee8', blurb: 'Perle fine aux reflets nacrés' },
-    { id: 'cafe',       rarity: 'uncommon',  name: 'Café',             accent: '#8a5a36', blurb: 'Un latte et son cœur de mousse' },
+    { id: 'cafe',       rarity: 'uncommon',  name: 'Latte',            accent: '#8a5a36', blurb: 'Un latte et son cœur de mousse' },
     { id: 'citrouille', rarity: 'uncommon',  name: 'Citrouille',       accent: '#ff8a1f', blurb: 'Côtes orange et petite tige' },
     { id: 'nuage',      rarity: 'uncommon',  name: 'Nuage',            accent: '#8fd0ff', blurb: 'Ciel bleu, nuages qui passent' },
     { id: 'agrume',     rarity: 'uncommon',  name: 'Agrume',           accent: '#ffd23a', blurb: 'Tranche de citron bien juteuse' },
@@ -49,6 +50,9 @@
     { id: 'tennis',     rarity: 'uncommon',  name: 'Balle de tennis',  accent: '#cdf23a', blurb: 'Feutre fluo et couture blanche' },
     { id: 'basket',     rarity: 'uncommon',  name: 'Basket',           accent: '#e8661c', blurb: 'Cuir orange et lignes noires' },
     { id: 'coccinelle', rarity: 'uncommon',  name: 'Coccinelle',       accent: '#e3241b', blurb: 'Rouge à pois, porte-bonheur' },
+    { id: 'point',      rarity: 'uncommon',  name: 'Point',            accent: '#f5f5f2', blurb: 'Un point noir sur fond blanc, tout simplement' },
+    { id: 'grains',     rarity: 'uncommon',  name: 'Café',             accent: '#6b3e1f', blurb: 'Grains de café bien torréfiés' },
+    { id: 'cola',       rarity: 'uncommon',  name: 'Cola',             accent: '#7a2e10', blurb: 'Pétillant, plein de bulles qui remontent' },
     // rares
     { id: 'chrome',     rarity: 'rare',      name: 'Chrome',           accent: '#dfe6f2', blurb: 'Miroir poli, néons dans le reflet' },
     { id: 'damier',     rarity: 'rare',      name: 'Damier',           accent: '#f2f2f2', blurb: 'Le drapeau de l’arrivée' },
@@ -74,6 +78,9 @@
     { id: 'creepsmile', rarity: 'rare',      name: 'Creep Smile',      accent: '#ffd21a', blurb: 'Un sourire… un peu trop grand' },
     { id: 'star',       rarity: 'rare',      name: 'Star',             accent: '#ffd34a', blurb: 'Une étoile d’or sur un ciel de nuit' },
     { id: 'saturne',    rarity: 'rare',      name: 'Saturne',          accent: '#e3c48c', blurb: 'La planète aux anneaux, en orbite sur la piste' },
+    { id: 'oeilchat',   rarity: 'rare',      name: 'Œil de chat',      accent: '#9be33a', blurb: 'Une pupille fendue qui s’ouvre et se referme' },
+    { id: 'cassoulet',  rarity: 'rare',      name: 'Cassoulet',        accent: '#b8652a', blurb: 'Haricots, saucisse et croûte dorée' },
+    { id: 'cafecreme',  rarity: 'rare',      name: 'Café Crème',       accent: '#c99a6a', blurb: 'Café noir et tourbillon de crème' },
     // épiques
     { id: 'lavalamp',   rarity: 'epic',      name: 'Lampe à lave',     accent: '#ff7a3d', blurb: 'La cire qui monte, années 70' },
     { id: 'aurore',     rarity: 'epic',      name: 'Aurore boréale',   accent: '#3dffb0', blurb: 'Rideaux de lumière sur la neige' },
@@ -93,6 +100,8 @@
     { id: 'neonveines', rarity: 'epic',      name: 'Veines néon',      accent: '#39ffb4', blurb: 'Lumière arc-en-ciel parcourue de veines sombres' },
     { id: 'encrefluo',  rarity: 'epic',      name: 'Encre fluo',       accent: '#ff3ec8', blurb: 'De l’encre noire qui tourbillonne dans le néon' },
     { id: 'ectoplasme', rarity: 'epic',      name: 'Ectoplasme',       accent: '#9dff2e', blurb: 'Matière fluo vivante et cellules sombres' },
+    { id: 'oeilloup',   rarity: 'epic',      name: 'Œil de loup',      accent: '#ffb21a', blurb: 'Un regard ambré qui guette la course' },
+    { id: 'paillettes', rarity: 'epic',      name: 'Paillettes d’or',  accent: '#ffd34a', blurb: 'Mille paillettes qui scintillent' },
     // légendaires
     { id: 'nebula',     rarity: 'legendary', name: 'Nébuleuse',        accent: '#b46bff', blurb: 'Gaz cosmiques et étoiles' },
     { id: 'magma',      rarity: 'legendary', name: 'Magma',            accent: '#ff6a1f', blurb: 'Croûte basaltique, fissures de lave' },
@@ -107,7 +116,8 @@
     { id: 'aze',        rarity: 'legendary', name: 'Aze',              accent: '#3ff0ff', blurb: 'Cyan, magenta, jaune : la signature' },
     { id: 'rypoint',    rarity: 'legendary', name: 'Rypoint',          accent: '#ff7a1a', blurb: 'Le protogen aux yeux d’or' },
     { id: 'ultrasmoke', rarity: 'legendary', name: 'Ultra smoke',      accent: '#b46bff', blurb: 'Fumée vivante aux reflets néon' },
-    { id: 'galaxium',   rarity: 'legendary', name: 'Galaxium',         accent: '#9a7bff', blurb: 'Une galaxie spirale noyée de nébuleuses' }
+    { id: 'galaxium',   rarity: 'legendary', name: 'Galaxium',         accent: '#9a7bff', blurb: 'Une galaxie spirale noyée de nébuleuses' },
+    { id: 'oeildragon', rarity: 'legendary', name: 'Œil de dragon',    accent: '#ff7a1a', blurb: 'Il s’ouvre de temps en temps… et il te regarde' }
   ];
   MR.COLLECTIBLE_SKINS = MR.SKINS.filter(function (s) { return !!s.rarity; });
   MR.skin = function (id) {
@@ -129,7 +139,7 @@
     { c: '#ff9e7a', n: 'Pêche' }, { c: '#5f7184', n: 'Ardoise' }, { c: '#e5279b', n: 'Fuchsia' }, { c: '#d9b21c', n: 'Moutarde' },
     { c: '#c8143c', n: 'Cerise' }, { c: '#7d8a2a', n: 'Olive' }, { c: '#b8ecff', n: 'Glacier' },
     { c: '#9c5b2e', n: 'Noisette' }, { c: '#4b1f5e', n: 'Aubergine' }, { c: '#1e6b45', n: 'Sapin' }, { c: '#1c2f73', n: 'Marine' },
-    { c: '#ffbfdc', n: 'Dragée' }
+    { c: '#ffbfdc', n: 'Dragée' }, { c: '#8a8f98', n: 'Gris triste' }, { c: '#33363c', n: 'Gris anthracite' }, { c: '#10194a', n: 'Bleu nuit' }
   ];
 
   // Effets : « aucun » est toujours libre, le reste se gagne en cartes (rareté indiquée)
@@ -219,7 +229,33 @@
 
   function has(list, id) { return list.some(function (x) { return x.id === id; }); }
   function owns(id) { return MR.Cards ? MR.Cards.owns(id) : false; }
-  function unlocked(id) { return id === 'solid' || owns(id); }
+  function unlocked(id) { return id === 'solid' || id === 'photo' || owns(id); }
+  // image perso d'une bille : petite image JPEG en data URL (64×64, très compressée)
+  MR.isMarbleImg = function (v) {
+    return typeof v === 'string' && v.length < 16000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v);
+  };
+  MR.compressImage = function (file, bg) {
+    return new Promise(function (res, rej) {
+      const url = URL.createObjectURL(file);
+      const im = new Image();
+      im.onload = function () {
+        const S = 64, cv = document.createElement('canvas');
+        cv.width = S; cv.height = S;
+        const c = cv.getContext('2d');
+        c.fillStyle = bg || '#ffffff';
+        c.fillRect(0, 0, S, S);
+        const k = Math.min(im.naturalWidth, im.naturalHeight);
+        c.imageSmoothingQuality = 'high';
+        c.drawImage(im, (im.naturalWidth - k) / 2, (im.naturalHeight - k) / 2, k, k, 0, 0, S, S);
+        URL.revokeObjectURL(url);
+        let out = cv.toDataURL('image/jpeg', 0.62);
+        if (!MR.isMarbleImg(out)) out = cv.toDataURL('image/jpeg', 0.4);
+        if (MR.isMarbleImg(out)) res(out); else rej(new Error('image'));
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); rej(new Error('image')); };
+      im.src = url;
+    });
+  };
   MR.isSkinUnlocked = unlocked;
   MR.isEffectUnlocked = function (kind, id) { return id === 'none' || owns(FX_KIND[kind].pre + id); };
   // couleurs proposées dans l'éditeur : les 12 de base + celles gagnées en cartes
@@ -309,6 +345,8 @@
       seed: typeof o.seed === 'number' && isFinite(o.seed) ? o.seed : d.seed,
       me: o.me === true
     };
+    if (MR.isMarbleImg(o.img)) m.img = o.img;
+    if (m.skin === 'photo' && !m.img) m.skin = 'solid';
     // ce qui n'est pas débloqué redevient libre : la bille garde sa couleur
     if (!unlocked(m.skin)) m.skin = 'solid';
     if (!MR.isEffectUnlocked('trail', m.trail)) m.trail = 'none';

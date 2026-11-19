@@ -9,7 +9,7 @@
 
   let ov, stage, deal, coll, spot, spotTitle, spotHint, dim, flashEl, zoom, packBtn;
   let midCv, midCtx, frontCv, frontCtx, dpr = 1, W = 1, H = 1;
-  let isOpen = false, tab = 'packs', phase = 'idle', busy = false, auto = false, packType = 'normal';
+  let isOpen = false, tab = 'packs', phase = 'idle', busy = false, auto = false, packType = 'normal', flips = 0;
   let pulls = [], cards = [], lastTilt = null, tapResolve = null, collIO = null;
   let counterT = 0, lastPacks = -1;
   const arts = [];
@@ -565,19 +565,29 @@
     reveal(d);
   }
 
+  // Les cartes communes à rares se retournent en parallèle (pas besoin d'attendre la fin de l'animation) ;
+  // les épiques et légendaires gardent leur grande révélation, une à la fois.
   async function reveal(d) {
-    if (d.revealed || busy) return;
-    busy = true;
+    if (d.revealed || d.flipping) return;
+    d.flipping = true;
     const rank = MR.rarity(d.card.rarity).rank;
-    if (rank >= 3) await cinematic(d, rank === 4);
-    else await simpleFlip(d, rank);
+    if (rank >= 3) {
+      while (busy) { await wait(80); if (!isOpen) { d.flipping = false; return; } }
+      busy = true;
+      await cinematic(d, rank === 4);
+      busy = false;
+    } else {
+      flips++;
+      await simpleFlip(d, rank);
+      flips--;
+    }
+    d.flipping = false;
     d.revealed = true;
     d.el.classList.remove('down');
     d.el.classList.add('tiltable');
     d.el.setAttribute('aria-label', d.card.name + ', carte ' + MR.rarity(d.card.rarity).name.toLowerCase());
     if (d.isNew && rank < 3) { addNew(d.el, true); MR.Audio.newBadge(); }
     else if (d.isNew) addNew(d.el, false);
-    busy = false;
     if (cards.every(function (x) { return x.revealed; })) finishReveal();
   }
 
@@ -750,14 +760,31 @@
     MR.Audio.duck(false);
   }
 
+  // 1er appui : les cartes se retournent une par une. 2e appui : toutes celles qui restent d'un coup.
+  let revealing = false, allNow = false;
+  function flipRestNow() {
+    let k = 0;
+    cards.forEach(function (d) {
+      if (!d.revealed && !d.flipping && MR.rarity(d.card.rarity).rank < 3) setTimeout(function () { reveal(d); }, 40 * k++);
+    });
+  }
   async function revealAll() {
-    if (busy) return;
-    auto = true;
+    const btn = $('#bRevealAll');
+    if (revealing) { allNow = true; btn.disabled = true; flipRestNow(); return; }
+    revealing = true; allNow = false; auto = true;
+    btn.textContent = 'Tout d’un coup !';
     for (let i = 0; i < cards.length; i++) {
       if (!isOpen) break;
-      if (!cards[i].revealed) { await reveal(cards[i]); await wait(140); }
+      const d = cards[i];
+      if (d.revealed || d.flipping) continue;
+      if (allNow && MR.rarity(d.card.rarity).rank < 3) continue;
+      await reveal(d);
+      if (!allNow) await wait(140);
     }
-    auto = false;
+    // épiques et légendaires encore cachées (après un 2e appui) : leur révélation passe ensuite
+    for (let i = 0; i < cards.length && isOpen; i++) if (!cards[i].revealed) await reveal(cards[i]);
+    revealing = false; allNow = false; auto = false;
+    btn.textContent = 'Tout révéler'; btn.disabled = false;
   }
 
   function finishReveal() {
@@ -892,7 +919,7 @@
     $('#coClose').focus();
   };
   P.hide = function () {
-    if (!isOpen || busy) return;
+    if (!isOpen || busy || flips > 0) return;
     isOpen = false;
     ov.hidden = true;
     closeZoom();
