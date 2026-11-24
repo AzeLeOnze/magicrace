@@ -3,7 +3,7 @@
   'use strict';
 
   MR.LEVELS = [];
-  // zones : 10 niveaux de course chacune (0.2.9 : seule la Zone Disco existe, niveaux 9 et 10 à venir)
+  // zones : 10 niveaux de course chacune (0.2.13 : seule la Zone Disco existe, niveau 10 à venir)
   MR.ZONES = [{ id: 'disco', name: 'Zone Disco', size: 10 }];
   MR.registerLevel = function (def) { if (!def.zone) def.zone = 'disco'; MR.LEVELS.push(def); };
   MR.levelById = function (id) {
@@ -16,6 +16,7 @@
     const L = {
       W: W, H: H, gravity: 1000, marbleR: 16,
       segs: [], circles: [], arms: [], hubs: [], boosts: [], pistons: [], sliders: [], zones: [], shapes: [], signs: [], voids: [], calm: [], liquids: [],
+      gzones: [], portals: [],
       spawn: null, finish: null, startView: { x: W / 2, y: 300 }
     };
     L.seg = function (ax, ay, bx, by, o) {
@@ -103,6 +104,16 @@
         cx: cx, cy: cy, R: R, empty: o.empty || 1.2, fill: o.fill || 3, hold: o.hold || 3, drain: o.drain || 1.8, off: o.off || 0,
         buoy: o.buoy || 2.1, drag: o.drag || 3, flow: (o.flow || 700) * side, c1: o.c1 || '#ff4fa8', c2: o.c2 || '#6a1fd6' });
       L.calm.push({ x0: x0, y0: Math.min(yWall, lipY) - 40, x1: x1, y1: yBot + 10 });
+    };
+    // zone sans gravité (0.2.13) : g = part de la gravité (0 = apesanteur), courant (ax, ay), freinage drag
+    L.zeroG = function (x0, y0, x1, y1, o) {
+      o = o || {};
+      L.gzones.push({ x0: x0, y0: y0, x1: x1, y1: y1, g: o.g || 0, ax: o.ax || 0, ay: o.ay != null ? o.ay : 140, drag: o.drag != null ? o.drag : 0.5 });
+    };
+    // portail à sens unique : entre en (ax, ay), ressort en (bx, by) ; dir = direction de sortie (radians) ou garde la vitesse
+    L.portal = function (ax, ay, bx, by, o) {
+      o = o || {};
+      L.portals.push({ ax: ax, ay: ay, bx: bx, by: by, r: o.r || 34, dir: o.dir != null ? o.dir : null, hue: o.hue != null ? o.hue : 190 });
     };
     // marche d'escalier lumineuse
     L.step = function (x0, y0, x1, y1) { L.segs.push({ ax: x0, ay: y0, bx: x1, by: y1, t: 7, e: 0.35, kind: 'step' }); };
@@ -1098,6 +1109,99 @@
       L.poly([[900, my], [1340, my + 130], [1340, H]], { kind: 'finish', e: 0.3 });
       L.voids.push([[0, 2720], [180, 2720], [590, 2880], [700, my], [260, my + 130], [260, H], [0, H]]);
       L.voids.push([[1600, 2720], [1420, 2720], [1010, 2880], [900, my], [1340, my + 130], [1340, H], [1600, H]]);
+      L.finish = {
+        y: my + 25,
+        mouth: { x0: 700, x1: 900, y: my },
+        basin: [[700, my], [900, my], [1340, my + 130], [1340, H - 10], [260, H - 10], [260, my + 130]],
+        box: { x0: 260, x1: 1340, y0: my, y1: H - 10 },
+        label: { text: 'ARRIVÉE', x: 800, y: my + 210, size: 64 }
+      };
+      return L;
+    }
+  });
+
+  /* ------------------------------------------------------------------ *
+   * Niveau 9 — Orbite Disco (0.2.13) : une station spatiale.
+   * Rampe de lancement (bumpers, bras qui tournent) → sas → grande chambre en apesanteur (astéroïdes,
+   * bras de station, propulseurs qui soufflent sur le temps, portails de téléportation) → retour de la gravité → arrivée.
+   * ------------------------------------------------------------------ */
+  MR.registerLevel({
+    id: 'orbite-disco',
+    num: 9,
+    zone: 'disco',
+    name: 'Orbite Disco',
+    build: function () {
+      const W = 1600, H = 3660;
+      const L = Builder(W, H);
+      L.gravity = 1000;
+      L.marbleR = 16;
+      L.theme = 'space';
+      const T = MR.L9 || {};
+      const mir = function (x) { return W - x; };
+      L.seg(0, 0, W, 0, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, 0, W, H, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, H, 0, H, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(0, H, 0, 0, { kind: 'frame', t: 10, e: 0.4 });
+
+      // départ
+      L.seg(560, 80, 560, 300, { kind: 'wall', e: 0.2 });
+      L.seg(1040, 80, 1040, 300, { kind: 'wall', e: 0.2 });
+      L.door(560, 300, 240, 0, Math.PI / 2, 7);
+      L.door(1040, 300, 240, Math.PI, Math.PI / 2, -7);
+      L.spawn = { x0: 586, x1: 1014, y: 277, gap: 34 };
+      L.startView = { x: 800, y: 520 };
+      L.sign('ORBITE DISCO', 800, 44, 30, '#3ff0ff');
+
+      // coque de la station, de haut en bas
+      L.seg(180, 60, 180, 3010, { kind: 'wall', e: 0.35 });
+      L.seg(mir(180), 60, mir(180), 3010, { kind: 'wall', e: 0.35 });
+
+      // rampe de lancement : bumpers et deux bras qui tournent en sens inverse
+      L.bumper(800, 560, 40, 240);
+      L.rotor(520, 640, 120, 2, T.rot || 2.2, 0, 16);
+      L.rotor(mir(520), 640, 120, 2, -(T.rot || 2.2), Math.PI / 2, 16);
+      for (let row = 0; row < 3; row++) {
+        const y = 800 + row * 62, off = row % 2 ? 50 : 0;
+        for (let x = 300 + off; x <= 1300; x += 100) if (Math.abs(x - 800) > 30 || row !== 1) L.peg(x, y, 10);
+      }
+      L.sling(230, 860, 330, 960, 320); L.sling(mir(230), 860, mir(330), 960, 320);
+      L.seg(180, 1000, 720, 1150, { kind: 'funnel', e: 0.25 });
+      L.seg(mir(180), 1000, mir(720), 1150, { kind: 'funnel', e: 0.25 });
+      // sas : on attend le gros du peloton avant de partir en apesanteur
+      L.hold(720, 1160, 880, 1160, -170, 0, { x0: 180, y0: 880, x1: 1420, y1: 1166 },
+        { ratio: 0.85, maxWait: T.wait || 10, label: { x: 800, y: 1080 } });
+      L.seg(550, 1104, 550, 1168, { kind: 'wall', e: 0.3 });
+
+      // chambre en apesanteur : les billes flottent et dérivent doucement vers le bas
+      const g0 = 1240, g1 = 2560;
+      L.zeroG(180, g0, 1420, g1, { ay: T.drift || 95, drag: T.drag || 0.45 });
+      L.sign('ZÉRO G', 800, 1300, 30, '#9fe8ff');
+      L.bumper(470, 1520, 54, 200); L.bumper(mir(470), 1520, 54, 200);
+      L.bumper(800, 1860, 70, 220);
+      L.bumper(440, 2190, 46, 200); L.bumper(mir(440), 2190, 46, 200);
+      L.rotor(800, 1480, 150, 3, T.station || 1.1, 0, 30, 'rotor');
+      L.rotor(800, 2300, 120, 2, -(T.station || 1.1) * 1.4, 0.4, 24, 'rotor');
+      // propulseurs : soufflent vers le centre sur le temps de la musique
+      L.speaker(190, 2330, 330, 2540, 1800, -250);
+      L.speaker(mir(330), 2330, mir(190), 2540, -1800, -250);
+      // portails : à gauche en haut → à droite en bas, et l'inverse
+      L.portal(310, 1730, 1270, 2080, { hue: 190, r: 44 });
+      L.portal(1290, 1730, 330, 2080, { hue: 320, r: 44 });
+
+      // retour de la gravité : entonnoir, boule à facettes et arrivée
+      L.seg(180, g1, 720, 2700, { kind: 'funnel', e: 0.25 });
+      L.seg(mir(180), g1, mir(720), 2700, { kind: 'funnel', e: 0.25 });
+      L.mirrorBall(800, 2880, 80, 2.0, 120);
+      L.seg(200, 3000, 690, 3200, { kind: 'ramp', e: 0.25 });
+      L.seg(mir(200), 3000, mir(690), 3200, { kind: 'ramp', e: 0.25 });
+      const my = 3260;
+      L.seg(690, 3200, 700, my, { kind: 'wall', e: 0.3 });
+      L.seg(mir(690), 3200, 900, my, { kind: 'wall', e: 0.3 });
+      L.calm.push({ x0: 600, y0: 3150, x1: 1000, y1: my + 20 });
+      L.poly([[700, my], [260, my + 130], [260, H]], { kind: 'finish', e: 0.3 });
+      L.poly([[900, my], [1340, my + 130], [1340, H]], { kind: 'finish', e: 0.3 });
+      L.voids.push([[0, 3010], [180, 3010], [200, 3000], [690, 3200], [700, my], [260, my + 130], [260, H], [0, H]]);
+      L.voids.push([[1600, 3010], [1420, 3010], [1400, 3000], [910, 3200], [900, my], [1340, my + 130], [1340, H], [1600, H]]);
       L.finish = {
         y: my + 25,
         mouth: { x0: 700, x1: 900, y: my },

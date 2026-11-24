@@ -33,7 +33,7 @@
   };
   // halo des billes dans la couche bloom (réduit en 0.0.3)
   const EMISSIVE = { solid: 0.12, nebula: 0.2, magma: 0.42, opal: 0.16, plasma: 0.38, disco: 0.2,
-    lavalamp: 0.3, aurore: 0.2, rypoint: 0.25, ultrasmoke: 0.35, galaxium: 0.3, neonveines: 0.32, encrefluo: 0.3, ectoplasme: 0.34, oeildragon: 0.3, paillettes: 0.26, tenebres: 0.3, obscur: 0.22, oeilloup: 0.2, sunshine: 0.4, deepfire: 0.35, electrique: 0.3, diamant: 0.24, hypnose: 0.26, abysses: 0.2, chrome: 0.16, glace: 0.16 };
+    lavalamp: 0.3, aurore: 0.2, rypoint: 0.25, ultrasmoke: 0.35, galaxium: 0.3, neonveines: 0.32, encrefluo: 0.3, ectoplasme: 0.34, oeildragon: 0.3, paillettes: 0.26, tenebres: 0.3, obscur: 0.22, phenix: 0.4, supernova: 0.35, chronos: 0.25, meduse: 0.3, hyperespace: 0.25, reacteur: 0.35, hologramme: 0.3, feufollet: 0.32, geode: 0.2, synthwave: 0.28, vitrail: 0.2, oeilloup: 0.2, sunshine: 0.4, deepfire: 0.35, electrique: 0.3, diamant: 0.24, hypnose: 0.26, abysses: 0.2, chrome: 0.16, glace: 0.16 };
   const BEAMS = [[255, 62, 165], [63, 240, 255], [155, 92, 255], [255, 207, 74]];
   const TILE_HUES = [330, 185, 270, 45];
   const bokeh = [];
@@ -501,11 +501,153 @@
     b.beginPath(); b.moveTo(a.px, a.py); b.lineTo(a.ex, a.ey); b.stroke();
   }
 
+  // décor de l'espace (niveau 9) : étoiles en parallaxe, nébuleuses, planète à anneaux, satellite boule à facettes
+  function drawSpace(time, kick, beat, L) {
+    const vw = R.vw, vh = R.vh, bi = Math.floor(beat);
+    let g = ctx.createLinearGradient(0, 0, 0, vh);
+    g.addColorStop(0, '#02030c'); g.addColorStop(0.5, '#060822'); g.addColorStop(1, '#030210');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, vw, vh);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // nébuleuses qui dérivent
+    [[0.2, 0.3, '255,62,165'], [0.75, 0.65, '63,140,255'], [0.5, 0.95, '150,80,255']].forEach(function (n, k) {
+      const x = vw * (n[0] + 0.04 * Math.sin(time * 0.05 + k)), y = vh * n[1] - ((cam.y * 0.01) % vh) * 0.2;
+      const rr = Math.max(vw, vh) * 0.5;
+      g = ctx.createRadialGradient(x, y, 0, x, y, rr);
+      g.addColorStop(0, 'rgba(' + n[2] + ',' + (0.1 + 0.03 * kick).toFixed(3) + ')'); g.addColorStop(1, 'rgba(' + n[2] + ',0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, vw, vh);
+    });
+    // étoiles sur trois plans
+    for (let layer = 0; layer < 3; layer++) {
+      const n = 70 + layer * 40, sp = 0.02 + layer * 0.03;
+      for (let i = 0; i < n; i++) {
+        const x = MR.hash(i * 1.37, layer * 3.1) * vw;
+        const y = ((MR.hash(i * 2.71, layer + 9.2) * vh * 1.5 - cam.y * sp) % vh + vh) % vh;
+        const tw = 0.5 + 0.5 * Math.sin(time * (1 + MR.hash(i, layer) * 2) + i);
+        const rr = (0.6 + layer * 0.5) * (0.7 + 0.5 * tw);
+        ctx.fillStyle = 'rgba(' + (layer === 2 && i % 5 === 0 ? '255,220,180' : '220,235,255') + ',' + (0.35 + 0.5 * tw).toFixed(3) + ')';
+        ctx.fillRect(x - rr / 2, y - rr / 2, rr, rr);
+      }
+    }
+    ctx.restore();
+    // planète à anneaux
+    const px = vw * 0.84, py = vh * 0.3 - ((cam.y * 0.015) % (vh * 2)) * 0.1, pr = Math.min(vw, vh) * 0.11;
+    ctx.save();
+    ctx.translate(px, py); ctx.rotate(-0.35);
+    ctx.strokeStyle = 'rgba(255,210,160,0.35)'; ctx.lineWidth = pr * 0.12;
+    ctx.beginPath(); ctx.ellipse(0, 0, pr * 1.9, pr * 0.45, 0, Math.PI, TAU); ctx.stroke();
+    g = ctx.createRadialGradient(-pr * 0.35, -pr * 0.4, pr * 0.1, 0, 0, pr);
+    g.addColorStop(0, '#ffc98a'); g.addColorStop(0.6, '#c2603a'); g.addColorStop(1, '#3a0f1a');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, pr, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 0.25; ctx.fillStyle = '#ffe2b8';
+    for (let k = -2; k <= 2; k++) ctx.fillRect(-pr, k * pr * 0.3 - pr * 0.04, pr * 2, pr * 0.07);
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(0, 0, pr, 0, TAU); ctx.globalCompositeOperation = 'destination-over'; ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = 'rgba(255,210,160,0.5)'; ctx.lineWidth = pr * 0.12;
+    ctx.beginPath(); ctx.ellipse(0, 0, pr * 1.9, pr * 0.45, 0, 0, Math.PI); ctx.stroke();
+    ctx.restore();
+    // satellite boule à facettes : il tourne et lance des éclats sur le temps
+    const sx = vw * 0.16, sy = vh * 0.2, sr = Math.min(vw, vh) * 0.045;
+    ctx.fillStyle = '#1a2a5a';
+    ctx.fillRect(sx - sr * 3.2, sy - sr * 0.35, sr * 2, sr * 0.7); ctx.fillRect(sx + sr * 1.2, sy - sr * 0.35, sr * 2, sr * 0.7);
+    ctx.strokeStyle = 'rgba(120,180,255,0.6)'; ctx.lineWidth = 1;
+    for (let k = 0; k < 4; k++) {
+      ctx.beginPath(); ctx.moveTo(sx - sr * 3.2 + k * sr * 0.5, sy - sr * 0.35); ctx.lineTo(sx - sr * 3.2 + k * sr * 0.5, sy + sr * 0.35); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sx + sr * 1.2 + k * sr * 0.5, sy - sr * 0.35); ctx.lineTo(sx + sr * 1.2 + k * sr * 0.5, sy + sr * 0.35); ctx.stroke();
+    }
+    ctx.save(); ctx.beginPath(); ctx.arc(sx, sy, sr, 0, TAU); ctx.clip();
+    ctx.fillStyle = '#2a2440'; ctx.fillRect(sx - sr, sy - sr, sr * 2, sr * 2);
+    const T = Math.max(4, sr / 4);
+    for (let yy = -sr; yy < sr; yy += T) for (let xx = -sr; xx < sr; xx += T) {
+      const h = MR.hash(Math.floor((xx + time * 30) / T), Math.floor(yy / T) + bi * 0.37);
+      ctx.fillStyle = h > 0.8 ? 'hsl(' + Math.floor(h * 360) + ',90%,75%)' : 'hsl(250,12%,' + (40 + h * 40).toFixed(0) + '%)';
+      ctx.fillRect(sx + xx + 1, sy + yy + 1, T - 2, T - 2);
+    }
+    ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 5; k++) {
+      const a = time * 0.7 + k * 1.26, len = Math.min(vw, vh) * 0.5 * (0.6 + 0.6 * kick);
+      g = ctx.createLinearGradient(sx, sy, sx + Math.cos(a) * len, sy + Math.sin(a) * len);
+      g.addColorStop(0, 'hsla(' + ((k * 70 + bi * 40) % 360) + ',95%,65%,' + (0.12 + 0.18 * kick).toFixed(3) + ')'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + Math.cos(a - 0.04) * len, sy + Math.sin(a - 0.04) * len); ctx.lineTo(sx + Math.cos(a + 0.04) * len, sy + Math.sin(a + 0.04) * len); ctx.closePath(); ctx.fill();
+    }
+    // étoile filante de temps en temps
+    const ph = (time * 0.13) % 1;
+    if (ph < 0.12) {
+      const u = ph / 0.12, x0 = vw * (0.2 + 0.6 * MR.hash(Math.floor(time * 0.13), 4)), y0 = vh * 0.1;
+      const x = x0 + u * vw * 0.3, y = y0 + u * vh * 0.25;
+      g = ctx.createLinearGradient(x, y, x - 80, y - 66);
+      g.addColorStop(0, 'rgba(255,255,255,' + (0.9 * (1 - u)).toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 80, y - 66); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // zone d'apesanteur : voile bleuté, lignes de champ aux bords, poussières qui flottent
+  function drawGZones(W, b, v, time, kick) {
+    for (let i = 0; i < W.gzones.length; i++) {
+      const z = W.gzones[i];
+      if (z.x1 < v.x0 || z.x0 > v.x1 || z.y1 < v.y0 || z.y0 > v.y1) continue;
+      const g = ctx.createLinearGradient(0, z.y0, 0, z.y1);
+      g.addColorStop(0, 'rgba(90,170,255,0.1)'); g.addColorStop(0.5, 'rgba(120,90,255,0.05)'); g.addColorStop(1, 'rgba(90,170,255,0.1)');
+      ctx.fillStyle = g; ctx.fillRect(z.x0, z.y0, z.x1 - z.x0, z.y1 - z.y0);
+      // lignes de champ ondulées en haut et en bas
+      [z.y0, z.y1].forEach(function (y, k) {
+        ctx.beginPath(); b.beginPath();
+        for (let x = z.x0; x <= z.x1; x += 20) {
+          const yy = y + Math.sin(x * 0.02 + time * (k ? -2 : 2)) * 6;
+          if (x === z.x0) { ctx.moveTo(x, yy); b.moveTo(x, yy); } else { ctx.lineTo(x, yy); b.lineTo(x, yy); }
+        }
+        ctx.strokeStyle = 'rgba(160,230,255,' + (0.55 + 0.3 * kick).toFixed(3) + ')'; ctx.lineWidth = 3; ctx.setLineDash([14, 10]); ctx.stroke(); ctx.setLineDash([]);
+        b.strokeStyle = 'rgba(90,190,255,0.8)'; b.lineWidth = 10; b.stroke();
+      });
+      // poussières d'étoiles en apesanteur
+      const n = 90;
+      for (let k = 0; k < n; k++) {
+        const x = z.x0 + MR.hash(k, 3.3) * (z.x1 - z.x0) + Math.sin(time * 0.4 + k) * 18;
+        const y = z.y0 + ((MR.hash(k, 7.1) * (z.y1 - z.y0) - time * (8 + MR.hash(k, 1) * 14)) % (z.y1 - z.y0) + (z.y1 - z.y0)) % (z.y1 - z.y0);
+        if (y < v.y0 || y > v.y1) continue;
+        const tw = 0.5 + 0.5 * Math.sin(time * 2 + k * 1.7);
+        ctx.fillStyle = 'rgba(200,235,255,' + (0.25 + 0.5 * tw).toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(x, y, 1.2 + 1.6 * tw, 0, TAU); ctx.fill();
+      }
+    }
+  }
+
+  // portails : un vortex coloré à l'entrée, un anneau qui s'ouvre à la sortie
+  function drawPortals(W, b, v, time) {
+    for (let i = 0; i < W.portals.length; i++) {
+      const p = W.portals[i];
+      p.flash *= 0.93;
+      [[p.ax, p.ay, 1], [p.bx, p.by, 0]].forEach(function (e) {
+        const x = e[0], y = e[1], inA = e[2], r = p.r * (inA ? 1 : 0.85);
+        if (x + 120 < v.x0 || x - 120 > v.x1 || y + 120 < v.y0 || y - 120 > v.y1) return;
+        const hue = p.hue, f = p.flash;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, inA ? '#05010c' : 'hsla(' + hue + ',95%,70%,0.6)'); g.addColorStop(0.7, 'hsla(' + hue + ',90%,35%,0.85)'); g.addColorStop(1, 'hsla(' + hue + ',95%,60%,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+        ctx.save(); ctx.translate(x, y); ctx.rotate(time * (inA ? 2.4 : -1.6) + i);
+        for (let k = 0; k < 4; k++) {
+          ctx.rotate(TAU / 4);
+          ctx.strokeStyle = 'hsla(' + (hue + k * 15) + ',95%,' + (65 + 20 * f).toFixed(0) + '%,0.9)'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(0, 0, r * (0.45 + 0.13 * k), 0, Math.PI * 0.9); ctx.stroke();
+        }
+        ctx.restore();
+        ctx.strokeStyle = 'hsla(' + hue + ',95%,75%,1)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+        b.fillStyle = 'hsla(' + hue + ',95%,60%,' + (0.5 + 0.5 * f).toFixed(3) + ')';
+        b.beginPath(); b.arc(x, y, r * (1.3 + f), 0, TAU); b.fill();
+      });
+    }
+  }
+
   function drawBackground(time, kick, beat, L) {
     const vw = R.vw, vh = R.vh, S = MR.Game.settings;
     if (L && (L.theme === 'beach' || L.theme === 'sunrise')) drawBeach(time, kick, beat, L);
     else if (L && L.theme === 'club') drawClub(time, kick, beat, L);
     else if (L && L.theme === 'bar') drawBar(time, kick, beat, L);
+    else if (L && L.theme === 'space') drawSpace(time, kick, beat, L);
     else {
       const g = ctx.createLinearGradient(0, 0, 0, vh);
       g.addColorStop(0, '#0e0619'); g.addColorStop(0.6, '#08040f'); g.addColorStop(1, '#040208');
@@ -552,7 +694,7 @@
   }
 
   function drawBoard(L, v) {
-    ctx.fillStyle = L.theme === 'beach' || L.theme === 'sunrise' || L.theme === 'club' || L.theme === 'bar' ? 'rgba(20,10,40,0.2)' : 'rgba(32,16,56,0.42)';
+    ctx.fillStyle = L.theme === 'beach' || L.theme === 'sunrise' || L.theme === 'club' || L.theme === 'bar' || L.theme === 'space' ? 'rgba(20,10,40,0.2)' : 'rgba(32,16,56,0.42)';
     ctx.fillRect(0, 0, L.W, L.H);
     const step = 80;
     ctx.fillStyle = 'rgba(244,237,255,0.06)';
@@ -1175,7 +1317,9 @@
     }
     G.fx.drawUnder(ctx, b);
     if (W.liquids.length) drawLiquids(W, b, v, time, kick, false);
+    if (W.gzones.length) drawGZones(W, b, v, time, kick);
     drawGeometry(W, b, v, time);
+    if (W.portals.length) drawPortals(W, b, v, time);
     drawMarbles(G, b, v, time, beat);
     if (W.liquids.length) drawLiquids(W, b, v, time, kick, true);
     G.fx.drawOver(ctx, b);

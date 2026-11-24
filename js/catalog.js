@@ -53,6 +53,21 @@
     { id: 'point',      rarity: 'uncommon',  name: 'Point',            accent: '#f5f5f2', blurb: 'Un point noir sur fond blanc, tout simplement' },
     { id: 'grains',     rarity: 'uncommon',  name: 'Café',             accent: '#6b3e1f', blurb: 'Grains de café bien torréfiés' },
     { id: 'cola',       rarity: 'uncommon',  name: 'Cola',             accent: '#7a2e10', blurb: 'Pétillant, plein de bulles qui remontent' },
+    { id: 'orange', rarity: 'uncommon', name: 'Orange', accent: '#ff8a14', blurb: 'Peau d’orange et son nombril' },
+    { id: 'kiwi', rarity: 'uncommon', name: 'Kiwi', accent: '#7cc23a', blurb: 'Coupé en deux, pépins en couronne' },
+    { id: 'pois', rarity: 'uncommon', name: 'À pois', accent: '#ff6ab0', blurb: 'Des pois de toutes les couleurs' },
+    { id: 'mariniere', rarity: 'uncommon', name: 'Marinière', accent: '#1c2f6e', blurb: 'Rayures bleu marine, cap sur la piste' },
+    { id: 'jean', rarity: 'uncommon', name: 'Jean', accent: '#3d5f9a', blurb: 'Denim délavé et surpiqûre orange' },
+    { id: 'paques', rarity: 'uncommon', name: 'Œuf de Pâques', accent: '#ffb3d9', blurb: 'Bandes pastel en zigzag' },
+    { id: 'foot', rarity: 'uncommon', name: 'Ballon de foot', accent: '#f2f2f2', blurb: 'Hexagones blancs, pentagones noirs' },
+    { id: 'golf', rarity: 'uncommon', name: 'Balle de golf', accent: '#f4f6fa', blurb: 'Blanche et pleine d’alvéoles' },
+    { id: 'billard', rarity: 'uncommon', name: 'Boule de billard', accent: '#111111', blurb: 'La boule noire numéro 8' },
+    { id: 'lune', rarity: 'uncommon', name: 'Lune', accent: '#b8b8c0', blurb: 'Cratères et mers de poussière' },
+    { id: 'terre', rarity: 'uncommon', name: 'Terre', accent: '#2a7ad8', blurb: 'Océans, continents et nuages qui tournent' },
+    { id: 'myrtille', rarity: 'uncommon', name: 'Myrtille', accent: '#3a3a86', blurb: 'Bleu nuit poudré et petite couronne' },
+    { id: 'zebre', rarity: 'uncommon', name: 'Zèbre', accent: '#f0eee8', blurb: 'Rayures noires et blanches' },
+    { id: 'leopard', rarity: 'uncommon', name: 'Léopard', accent: '#d99a45', blurb: 'Rosettes tachetées' },
+    { id: 'pixel', rarity: 'uncommon', name: 'Pixel', accent: '#7a5cff', blurb: 'Des gros pixels qui changent parfois' },
     // rares
     { id: 'chrome',     rarity: 'rare',      name: 'Chrome',           accent: '#dfe6f2', blurb: 'Miroir poli, néons dans le reflet' },
     { id: 'damier',     rarity: 'rare',      name: 'Damier',           accent: '#f2f2f2', blurb: 'Le drapeau de l’arrivée' },
@@ -83,6 +98,18 @@
     { id: 'cafecreme',  rarity: 'rare',      name: 'Café Crème',       accent: '#c99a6a', blurb: 'Café noir et tourbillon de crème' },
     { id: 'pizza',      rarity: 'rare',      name: 'Pizza',            accent: '#e8a43a', blurb: 'Fromage fondu, pepperoni et basilic' },
     { id: 'dark',       rarity: 'rare',      name: 'Dark',             accent: '#3a2a5a', blurb: 'Obsidienne mate et veines violettes' },
+    { id: 'aquarium', rarity: 'rare', name: 'Aquarium', accent: '#2aa8d8', blurb: 'Poissons, algues, sable et bulles' },
+    { id: 'arcenciel', rarity: 'rare', name: 'Arc-en-ciel', accent: '#7ac8ff', blurb: 'Un arc-en-ciel au-dessus des nuages' },
+    { id: 'mosaique', rarity: 'rare', name: 'Mosaïque', accent: '#2a8ac8', blurb: 'Carreaux de faïence bleus et dorés' },
+    { id: 'sushi', rarity: 'rare', name: 'Sushi', accent: '#ff7a4a', blurb: 'Un maki : riz, saumon et avocat' },
+    { id: 'cible', rarity: 'rare', name: 'Cible', accent: '#e61e28', blurb: 'En plein dans le mille' },
+    { id: 'boussole', rarity: 'rare', name: 'Boussole', accent: '#d9a443', blurb: 'L’aiguille cherche toujours le nord' },
+    { id: 'horloge', rarity: 'rare', name: 'Horloge', accent: '#e8d9b0', blurb: 'Les aiguilles tournent pour de vrai' },
+    { id: 'circuit', rarity: 'rare', name: 'Circuit', accent: '#22a05a', blurb: 'Circuit imprimé, le courant y circule' },
+    { id: 'vitrail', rarity: 'rare', name: 'Vitrail', accent: '#c84ad8', blurb: 'Verre coloré serti de plomb' },
+    { id: 'automne', rarity: 'rare', name: 'Automne', accent: '#e8741a', blurb: 'Un tas de feuilles mortes' },
+    { id: 'tournesol', rarity: 'rare', name: 'Tournesol', accent: '#ffc81a', blurb: 'Pétales dorés et graines en spirale' },
+    { id: 'tigre', rarity: 'rare', name: 'Tigre', accent: '#f2761a', blurb: 'Pelage orange rayé de noir' },
     // épiques
     { id: 'lavalamp',   rarity: 'epic',      name: 'Lampe à lave',     accent: '#ff7a3d', blurb: 'La cire qui monte, années 70' },
     { id: 'aurore',     rarity: 'epic',      name: 'Aurore boréale',   accent: '#3dffb0', blurb: 'Rideaux de lumière sur la neige' },
@@ -105,6 +132,13 @@
     { id: 'oeilloup',   rarity: 'epic',      name: 'Œil de loup',      accent: '#ffb21a', blurb: 'Un regard ambré qui guette la course' },
     { id: 'paillettes', rarity: 'epic',      name: 'Paillettes d’or',  accent: '#ffd34a', blurb: 'Mille paillettes qui scintillent' },
     { id: 'obscur',     rarity: 'epic',      name: 'Obscur',           accent: '#5a2aa8', blurb: 'Une ombre vivante et ses braises violettes' },
+    { id: 'meduse', rarity: 'epic', name: 'Méduse', accent: '#ff6ad5', blurb: 'Une méduse lumineuse qui flotte dans le noir' },
+    { id: 'hyperespace', rarity: 'epic', name: 'Hyperespace', accent: '#9ab8ff', blurb: 'Les étoiles filent à la vitesse lumière' },
+    { id: 'reacteur', rarity: 'epic', name: 'Réacteur', accent: '#3ff0ff', blurb: 'Un cœur d’énergie et ses anneaux' },
+    { id: 'hologramme', rarity: 'epic', name: 'Hologramme', accent: '#5ad8ff', blurb: 'Un globe holographique qui grésille' },
+    { id: 'feufollet', rarity: 'epic', name: 'Feu follet', accent: '#5affc8', blurb: 'Des flammes fantômes qui dansent' },
+    { id: 'geode', rarity: 'epic', name: 'Géode', accent: '#a05aff', blurb: 'Améthyste scintillante dans la roche' },
+    { id: 'synthwave', rarity: 'epic', name: 'Synthwave', accent: '#ff4fa8', blurb: 'Soleil rétro et grille néon des années 80' },
     // légendaires
     { id: 'nebula',     rarity: 'legendary', name: 'Nébuleuse',        accent: '#b46bff', blurb: 'Gaz cosmiques et étoiles' },
     { id: 'magma',      rarity: 'legendary', name: 'Magma',            accent: '#ff6a1f', blurb: 'Croûte basaltique, fissures de lave' },
@@ -121,7 +155,10 @@
     { id: 'ultrasmoke', rarity: 'legendary', name: 'Ultra smoke',      accent: '#b46bff', blurb: 'Fumée vivante aux reflets néon' },
     { id: 'galaxium',   rarity: 'legendary', name: 'Galaxium',         accent: '#9a7bff', blurb: 'Une galaxie spirale noyée de nébuleuses' },
     { id: 'oeildragon', rarity: 'legendary', name: 'Œil de dragon',    accent: '#ff7a1a', blurb: 'Il s’ouvre de temps en temps… et il te regarde' },
-    { id: 'tenebres',   rarity: 'legendary', name: 'Ténèbres',         accent: '#9a1a4a', blurb: 'Un abîme sans fond… où quelque chose ouvre les yeux' }
+    { id: 'tenebres',   rarity: 'legendary', name: 'Ténèbres',         accent: '#9a1a4a', blurb: 'Un abîme sans fond… où quelque chose ouvre les yeux' },
+    { id: 'phenix', rarity: 'legendary', name: 'Phénix', accent: '#ff6a1a', blurb: 'L’oiseau de feu déploie ses ailes' },
+    { id: 'supernova', rarity: 'legendary', name: 'Supernova', accent: '#c8a8ff', blurb: 'Une étoile qui explose encore et encore' },
+    { id: 'chronos', rarity: 'legendary', name: 'Chronos', accent: '#e8b84a', blurb: 'Des engrenages de laiton et le temps qui coule' }
   ];
   MR.COLLECTIBLE_SKINS = MR.SKINS.filter(function (s) { return !!s.rarity; });
   MR.skin = function (id) {
@@ -143,7 +180,9 @@
     { c: '#ff9e7a', n: 'Pêche' }, { c: '#5f7184', n: 'Ardoise' }, { c: '#e5279b', n: 'Fuchsia' }, { c: '#d9b21c', n: 'Moutarde' },
     { c: '#c8143c', n: 'Cerise' }, { c: '#7d8a2a', n: 'Olive' }, { c: '#b8ecff', n: 'Glacier' },
     { c: '#9c5b2e', n: 'Noisette' }, { c: '#4b1f5e', n: 'Aubergine' }, { c: '#1e6b45', n: 'Sapin' }, { c: '#1c2f73', n: 'Marine' },
-    { c: '#ffbfdc', n: 'Dragée' }, { c: '#8a8f98', n: 'Gris triste' }, { c: '#33363c', n: 'Gris anthracite' }, { c: '#10194a', n: 'Bleu nuit' }
+    { c: '#ffbfdc', n: 'Dragée' }, { c: '#8a8f98', n: 'Gris triste' }, { c: '#33363c', n: 'Gris anthracite' }, { c: '#10194a', n: 'Bleu nuit' },
+    { c: '#0f5257', n: 'Pétrole' }, { c: '#fbb36b', n: 'Abricot' }, { c: '#c2593a', n: 'Terracotta' }, { c: '#d8c3a0', n: 'Beige' },
+    { c: '#e8a5b8', n: 'Rose poudré' }, { c: '#d4a017', n: 'Or' }, { c: '#c0c4cc', n: 'Argent' }
   ];
 
   // Effets : « aucun » est toujours libre, le reste se gagne en cartes (rareté indiquée)

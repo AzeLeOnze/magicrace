@@ -1,5 +1,17 @@
 # MagicRace — journal des versions
 
+## 0.2.13 — 24 novembre 2026
+- Nouveau niveau 9 « Orbite Disco », dans l'espace : étoiles, nébuleuses, une planète à anneaux et un satellite boule à facettes.
+  - Rampe de lancement : bumpers, picots, slingshots et deux bras qui tournent en sens inverse, puis un sas qui regroupe les billes ;
+  - Grande chambre sans gravité : les billes flottent et dérivent doucement. On y trouve des astéroïdes rebondissants, deux bras de station qui tournent, des propulseurs qui soufflent sur le temps et deux portails qui téléportent d'un côté à l'autre ;
+  - Retour de la gravité : entonnoir, boule à facettes et arrivée.
+- 44 nouvelles billes, 211 cartes au total :
+  - 3 légendaires : « Phénix » (ailes de feu et braises), « Supernova » (une étoile qui explose en boucle) et « Chronos » (engrenages de laiton et cadran) ;
+  - 7 épiques : Méduse, Hyperespace, Réacteur, Hologramme, Feu follet, Géode et Synthwave ;
+  - 12 rares : Aquarium, Arc-en-ciel, Mosaïque, Sushi, Cible, Boussole, Horloge (ses aiguilles tournent), Circuit, Vitrail, Automne, Tournesol et Tigre ;
+  - 15 peu communes : Orange, Kiwi, À pois, Marinière, Jean, Œuf de Pâques, Ballon de foot, Balle de golf, Boule de billard, Lune, Terre, Myrtille, Zèbre, Léopard et Pixel ;
+  - 7 couleurs communes : Pétrole, Abricot, Terracotta, Beige, Rose poudré, Or et Argent.
+
 ## 0.2.12 — 20 novembre 2026
 - Records de temps : sur chaque niveau de course, le meilleur temps de ta bille ★ est gardé, quel que soit le nombre de billes. Les niveaux éliminatoires (4 et 5) n'ont pas de record.
   - Il s'affiche sous le chrono (« 🏆 Record ★ »). Pendant la course, il passe au vert tant que ta bille peut encore le battre.

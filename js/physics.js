@@ -38,6 +38,10 @@
       ringIdx: 0,
       // fioles (niveau 8) : un liquide monte, porte les billes jusqu'au bec verseur, puis se vide
       liquids: (def.liquids || []).map(function (l) { return Object.assign({ level: l.yBot, q: 0, vlev: 0, hot: 0 }, l); }),
+      // zones sans gravité (niveau 9) : g = facteur de gravité, (ax, ay) = léger courant, drag = freinage par seconde
+      gzones: (def.gzones || []).map(function (z) { return Object.assign({}, z); }),
+      // portails à sens unique (niveau 9) : la bille qui entre en (ax, ay) ressort en (bx, by) avec sa vitesse
+      portals: (def.portals || []).map(function (p) { return Object.assign({ flash: 0 }, p); }),
       // niveau 4 : rebonds parfaits (aucune perte), cercles figés et fermés avant le départ, vitesse constante en course
       elastic: !!def.elastic,
       locked: !!def.lockUntilStart,
@@ -240,7 +244,20 @@
       const m = ms[i];
       if (m.held) {
         m.vx = (m.hx - m.x) * 22; m.vy = (m.hy - m.y) * 22;
-      } else m.vy += g * dt;
+      } else {
+        let gf = 1, gd = 0;
+        m.zeroG = 0;
+        for (k = 0; k < w.gzones.length; k++) {
+          const z = w.gzones[k];
+          if (m.x > z.x0 && m.x < z.x1 && m.y > z.y0 && m.y < z.y1) {
+            gf = z.g; gd = z.drag || 0; m.zeroG = 1;
+            m.vx += (z.ax || 0) * dt; m.vy += (z.ay || 0) * dt;
+            break;
+          }
+        }
+        m.vy += g * gf * dt;
+        if (gd) { m.vx *= 1 - gd * dt; m.vy *= 1 - gd * dt; }
+      }
       if (!w.elastic) { m.vx *= 1 - AIR; m.vy *= 1 - AIR; }
       const sp2 = m.vx * m.vx + m.vy * m.vy;
       if (sp2 > VMAX * VMAX) { const f = VMAX / Math.sqrt(sp2); m.vx *= f; m.vy *= f; }
@@ -328,6 +345,25 @@
       }
     }
 
+    // portails : téléportation à sens unique (un court délai empêche de repartir aussitôt)
+    for (i = 0; i < n; i++) {
+      const m = ms[i];
+      if (m.held || (m.portalCD || 0) > w.t) continue;
+      for (k = 0; k < w.portals.length; k++) {
+        const p = w.portals[k], dx = m.x - p.ax, dy = m.y - p.ay;
+        if (dx * dx + dy * dy > p.r * p.r) continue;
+        m.x = p.bx + dx * 0.3; m.y = p.by + dy * 0.3;
+        if (p.dir != null) {
+          const sp = Math.max(260, Math.sqrt(m.vx * m.vx + m.vy * m.vy));
+          m.vx = Math.cos(p.dir) * sp; m.vy = Math.sin(p.dir) * sp;
+        }
+        m.portalCD = w.t + 0.6;
+        if (m.hist) m.hist.length = 0;
+        p.flash = 1; p.flashB = 1;
+        w.events.push({ m: m, s: 500, kind: 'portal', obj: p });
+        break;
+      }
+    }
     // boosters, rotation visuelle et garde-fous
     for (i = 0; i < n; i++) {
       const m = ms[i];

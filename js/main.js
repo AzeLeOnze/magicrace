@@ -888,7 +888,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : records de temps de ta bille ★ sur chaque niveau'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveau 9 « Orbite Disco » en apesanteur et 44 nouvelles billes'); }, 900);
     }
 
     const unlock = function () {
