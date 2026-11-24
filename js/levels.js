@@ -3,7 +3,7 @@
   'use strict';
 
   MR.LEVELS = [];
-  // zones : 10 niveaux de course chacune (0.2.13 : seule la Zone Disco existe, niveau 10 à venir)
+  // zones : 10 niveaux de course chacune (0.2.14 : la Zone Disco est complète)
   MR.ZONES = [{ id: 'disco', name: 'Zone Disco', size: 10 }];
   MR.registerLevel = function (def) { if (!def.zone) def.zone = 'disco'; MR.LEVELS.push(def); };
   MR.levelById = function (id) {
@@ -1209,6 +1209,87 @@
         box: { x0: 260, x1: 1340, y0: my, y1: H - 10 },
         label: { text: 'ARRIVÉE', x: 800, y: my + 210, size: 64 }
       };
+      return L;
+    }
+  });
+
+  /* ------------------------------------------------------------------ *
+   * Niveau 10 — Le Grand Final (0.2.14), dans l'esprit du niveau 4 : survie en apesanteur, la dernière bille gagne.
+   * Une boule à facettes géante tourne au centre, les cercles en carreaux de miroir tournent un sens puis l'autre,
+   * leurs trous respirent au rythme de la musique, et chaque cercle brisé lance un feu d'artifice sur la scène.
+   * ------------------------------------------------------------------ */
+  MR.registerLevel({
+    id: 'grand-final',
+    num: 10,
+    zone: 'disco',
+    name: 'Le Grand Final',
+    perCount: true,
+    build: function (count) {
+      const n = Math.max(1, Math.min(MR.MAX_MARBLES, count || (MR.Game && MR.Game.roster ? MR.Game.roster.length : 10)));
+      const T = MR.L10 || {};
+      const r = 14, rings = n - 1, dR = 22, ballR = T.ball || 58;
+      const R0 = Math.max(160, Math.sqrt((n * 900 + Math.PI * (ballR + 20) * (ballR + 20)) / Math.PI) + 26);
+      const outer = R0 + Math.max(0, rings - 1) * dR;
+      const half = Math.ceil(outer + 300);
+      const W = half * 2, H = half * 2, cx = half, cy = half;
+      const L = Builder(W, H);
+      L.gravity = 0;
+      L.elastic = true;
+      L.lockUntilStart = true;
+      L.speed = T.speed || 540;
+      L.speedPerR = T.perR || 1.3;
+      L.openDelay = T.open || 0.35;
+      L.marbleR = r;
+      L.theme = 'finale';
+      L.ringStyle = 'disco';
+      L.breathe = T.breathe != null ? T.breathe : 0.45;
+      L.mode = 'survival';
+      L.elim = true;
+      L.noStuck = true;
+      L.timeLimit = 900;
+      L.beatKick = T.kick || 220;
+      L.beatEvery = T.every || 2;
+      L.hunt = T.hunt || 2.6;
+      L.center = { x: cx, y: cy };
+      L.ringR0 = R0;
+      L.outerR = outer;
+      L.startView = { x: cx, y: cy };
+
+      L.seg(0, 0, W, 0, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, 0, W, H, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(W, H, 0, H, { kind: 'frame', t: 10, e: 0.4 });
+      L.seg(0, H, 0, 0, { kind: 'frame', t: 10, e: 0.4 });
+
+      // la boule à facettes géante au centre (les billes rebondissent dessus)
+      L.mirrorBall(cx, cy, ballR, T.spin || 1.4, 0);
+      // les cercles : or, rose et cyan en alternance ; un sens puis l'autre, chacun un peu plus rapide que le précédent
+      const HUES = [45, 320, 185, 275];
+      L.rings = [];
+      for (let k = 0; k < rings; k++) {
+        const R = R0 + k * dR;
+        const hue = HUES[k % 4];
+        const gap = Math.max((r * 2.1 + 4) / R, T.gapA || 0.19);
+        L.rings.push({ cx: cx, cy: cy, R: R, t: 5, gap: gap, gapBase: gap, angle: -Math.PI / 2,
+          omega: (T.w0 || 0.3) * Math.pow(1.04, k) * (k % 2 ? -1 : 1), e: 1, hue: hue, rgb: hsl(hue, 0.95, 0.62) });
+      }
+      // départ : grille serrée autour de la boule
+      L.spawnSlots = function (k) {
+        const pts = [], g = r * 2 + 3, lim = R0 - r - 8, inner = ballR + r + 6;
+        for (let j = -24; j <= 24; j++) {
+          for (let i = -24; i <= 24; i++) {
+            const x = (i + (j & 1) * 0.5) * g, y = j * g * 0.866, d = x * x + y * y;
+            if (d <= lim * lim && d >= inner * inner) pts.push({ x: cx + x, y: cy + y, d: d });
+          }
+        }
+        pts.sort(function (a, b) { return a.d - b.d; });
+        const out = pts.slice(0, k);
+        while (out.length < k) { const a = Math.random() * MR.TAU; out.push({ x: cx + Math.cos(a) * (inner + 10), y: cy + Math.sin(a) * (inner + 10) }); }
+        return MR.shuffle(out);
+      };
+      L.spawn = { x0: cx - R0, x1: cx + R0, y: cy, gap: 30 };
+      L.sign('LE GRAND FINAL', cx, cy - outer - 130, 52, '#ffcf4a');
+      L.sign('LE DERNIER EN VIE GAGNE', cx, cy + outer + 120, 28, '#ff6ac1');
+      L.finish = { y: Infinity, none: true, box: { x0: cx - R0, x1: cx + R0, y0: cy - R0, y1: cy + R0 } };
       return L;
     }
   });

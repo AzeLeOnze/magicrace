@@ -642,12 +642,114 @@
     }
   }
 
+  // feux d'artifice de la scène finale (niveau 10) : lancés à chaque cercle brisé, sur le temps, et en bouquet pour la victoire
+  const fireworks = [];
+  let fwLast = 0, fwBeat = -1;
+  R.firework = function (rgb, x, y) {
+    const vw = R.vw, vh = R.vh;
+    const fx = x != null ? x : vw * (0.12 + 0.76 * Math.random()), fy = y != null ? y : vh * (0.1 + 0.32 * Math.random());
+    const c = rgb || MR.pick([[255, 62, 165], [63, 240, 255], [255, 207, 74], [155, 92, 255], [125, 255, 176]]);
+    const n = R.reducedMotion ? 24 : 70, sp = Math.min(vw, vh) * (0.18 + 0.12 * Math.random());
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * TAU, v = sp * (0.4 + 0.6 * Math.random());
+      fireworks.push({ x: fx, y: fy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, rgb: i % 5 === 0 ? [255, 255, 255] : c, s: 1.5 + Math.random() * 1.8 });
+    }
+    if (fireworks.length > 900) fireworks.splice(0, fireworks.length - 900);
+  };
+  function drawFinale(time, kick, beat, L) {
+    const vw = R.vw, vh = R.vh, bi = Math.floor(beat), ph = beat - bi;
+    let g = ctx.createLinearGradient(0, 0, 0, vh);
+    g.addColorStop(0, '#080214'); g.addColorStop(0.6, '#14052a'); g.addColorStop(1, '#05010c');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, vw, vh);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // écran géant : anneaux qui battent au centre de la scène
+    const sx = vw / 2, sy = vh * 0.42;
+    for (let k = 0; k < 6; k++) {
+      const p = (ph + k / 6) % 1, rr = Math.min(vw, vh) * (0.08 + p * 0.55);
+      ctx.strokeStyle = 'hsla(' + ((bi * 40 + k * 60) % 360) + ',95%,60%,' + (0.18 * (1 - p)).toFixed(3) + ')';
+      ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(sx, sy, rr, 0, TAU); ctx.stroke();
+    }
+    // projecteurs qui balaient depuis le bas de la scène
+    const cols = [[255, 62, 165], [63, 240, 255], [255, 207, 74], [155, 92, 255]];
+    for (let k = 0; k < 8; k++) {
+      const bx = vw * (0.06 + k * 0.125), by = vh * 1.02;
+      const a = -Math.PI / 2 + Math.sin(time * (0.5 + k * 0.07) + k * 1.7) * 0.55;
+      const len = vh * 1.25, c = cols[(k + bi) % 4];
+      g = ctx.createLinearGradient(bx, by, bx + Math.cos(a) * len, by + Math.sin(a) * len);
+      g.addColorStop(0, MR.rgbStr(c, 0.22 + 0.25 * kick)); g.addColorStop(1, MR.rgbStr(c, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(bx, by);
+      ctx.lineTo(bx + Math.cos(a - 0.05) * len, by + Math.sin(a - 0.05) * len);
+      ctx.lineTo(bx + Math.cos(a + 0.05) * len, by + Math.sin(a + 0.05) * len);
+      ctx.closePath(); ctx.fill();
+    }
+    // feux d'artifice : un tous les 4 temps, plus ceux des cercles brisés
+    if (bi !== fwBeat) { fwBeat = bi; if (bi % 4 === 0 && !R.reducedMotion) R.firework(); }
+    const dt = Math.min(0.05, Math.max(0, time - fwLast)); fwLast = time;
+    for (let i = fireworks.length - 1; i >= 0; i--) {
+      const f = fireworks[i];
+      f.vy += 90 * dt; f.vx *= 1 - 1.2 * dt; f.vy *= 1 - 1.2 * dt;
+      f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt * 0.55;
+      if (f.life <= 0) { fireworks.splice(i, 1); continue; }
+      const tw = 0.6 + 0.4 * Math.sin(time * 30 + i);
+      ctx.fillStyle = MR.rgbStr(f.rgb, f.life * tw);
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.s * (0.6 + f.life), 0, TAU); ctx.fill();
+      ctx.fillStyle = MR.rgbStr(f.rgb, f.life * 0.25);
+      ctx.beginPath(); ctx.arc(f.x - f.vx * 0.04, f.y - f.vy * 0.04, f.s * 2.2, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+    // structure de scène : poutre éclairée en haut
+    ctx.fillStyle = '#0c0618'; ctx.fillRect(0, 0, vw, Math.max(18, vh * 0.035));
+    for (let x = vw * 0.04; x < vw; x += vw * 0.08) {
+      const on = (Math.floor(x / (vw * 0.08)) + bi) % 3 === 0;
+      ctx.fillStyle = on ? 'rgba(255,240,200,0.95)' : 'rgba(120,100,160,0.6)';
+      ctx.beginPath(); ctx.arc(x, Math.max(18, vh * 0.035), 5, 0, TAU); ctx.fill();
+    }
+    // la foule, téléphones allumés
+    const bounce = Math.pow(1 - ph, 3);
+    ctx.fillStyle = '#04010a';
+    for (let i = 0; i < crowd.length; i++) {
+      const p = crowd[i], x = p.x * vw, hh = vh * 0.1 * p.h;
+      const y = vh + 6 - bounce * vh * 0.012 * (0.5 + 0.5 * Math.sin(p.ph + bi));
+      ctx.beginPath(); ctx.arc(x, y - hh, hh * 0.18, 0, TAU); ctx.fill();
+      ctx.fillRect(x - hh * 0.2, y - hh * 0.85, hh * 0.4, hh * 0.9);
+      if (p.arm) {
+        ctx.save(); ctx.translate(x, y - hh * 0.75); ctx.rotate(-0.3 - 0.5 * bounce);
+        ctx.fillRect(-hh * 0.05, -hh * 0.55, hh * 0.1, hh * 0.55);
+        ctx.fillStyle = 'rgba(255,255,240,' + (0.5 + 0.4 * Math.sin(time * 2 + i)).toFixed(3) + ')';
+        ctx.fillRect(-hh * 0.06, -hh * 0.66, hh * 0.12, hh * 0.1);
+        ctx.restore(); ctx.fillStyle = '#04010a';
+      }
+    }
+  }
+  // cercles du grand final : carreaux de miroir qui scintillent le long de chaque cercle
+  function discoRingGlints(W, L, b, time, beat) {
+    const c = L.center, bi = Math.floor(beat);
+    for (let k = W.ringIdx; k < W.rings.length; k++) {
+      const rg = W.rings[k], first = k === W.ringIdx;
+      const n = Math.max(12, Math.floor(rg.R * TAU / 26));
+      for (let i = 0; i < n; i++) {
+        const a = rg.angle + (i + 0.5) / n * TAU;
+        const rel = ((i + 0.5) / n * TAU) % TAU;
+        if (rel < rg.gap + 0.04 || rel > TAU - rg.gap - 0.04) continue;
+        const h = MR.hash(i * 3.7 + k * 11.1, bi);
+        if (h < 0.72) continue;
+        const x = c.x + Math.cos(a) * rg.R, y = c.y + Math.sin(a) * rg.R;
+        ctx.fillStyle = h > 0.93 ? '#ffffff' : 'hsl(' + Math.floor(h * 360) + ',95%,78%)';
+        ctx.fillRect(x - 3, y - 3, 6, 6);
+        if (first || h > 0.9) { b.fillStyle = 'rgba(255,255,255,0.8)'; b.fillRect(x - 5, y - 5, 10, 10); }
+      }
+    }
+  }
+
   function drawBackground(time, kick, beat, L) {
     const vw = R.vw, vh = R.vh, S = MR.Game.settings;
     if (L && (L.theme === 'beach' || L.theme === 'sunrise')) drawBeach(time, kick, beat, L);
     else if (L && L.theme === 'club') drawClub(time, kick, beat, L);
     else if (L && L.theme === 'bar') drawBar(time, kick, beat, L);
     else if (L && L.theme === 'space') drawSpace(time, kick, beat, L);
+    else if (L && L.theme === 'finale') drawFinale(time, kick, beat, L);
     else {
       const g = ctx.createLinearGradient(0, 0, 0, vh);
       g.addColorStop(0, '#0e0619'); g.addColorStop(0.6, '#08040f'); g.addColorStop(1, '#040208');
@@ -694,7 +796,7 @@
   }
 
   function drawBoard(L, v) {
-    ctx.fillStyle = L.theme === 'beach' || L.theme === 'sunrise' || L.theme === 'club' || L.theme === 'bar' || L.theme === 'space' ? 'rgba(20,10,40,0.2)' : 'rgba(32,16,56,0.42)';
+    ctx.fillStyle = L.theme === 'beach' || L.theme === 'sunrise' || L.theme === 'club' || L.theme === 'bar' || L.theme === 'space' || L.theme === 'finale' ? 'rgba(20,10,40,0.2)' : 'rgba(32,16,56,0.42)';
     ctx.fillRect(0, 0, L.W, L.H);
     const step = 80;
     ctx.fillStyle = 'rgba(244,237,255,0.06)';
@@ -1110,8 +1212,8 @@
         ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, TAU); ctx.fill();
         ctx.strokeStyle = '#ffcf4a'; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(c.x, c.y, c.r - 1, 0, TAU); ctx.stroke();
-        b.fillStyle = 'rgba(255,220,150,' + (0.45 + 0.4 * f).toFixed(3) + ')';
-        b.beginPath(); b.arc(c.x, c.y, c.r * 1.25, 0, TAU); b.fill();
+        b.fillStyle = 'rgba(255,220,150,' + (0.3 + 0.2 * f).toFixed(3) + ')';
+        b.beginPath(); b.arc(c.x, c.y, c.r * 1.15, 0, TAU); b.fill();
       } else if (c.kind === 'hub') {
         ctx.fillStyle = '#1b0b30';
         ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, TAU); ctx.fill();
@@ -1184,6 +1286,7 @@
         }
       }
     }
+    if (L.ringStyle === 'disco') discoRingGlints(W, L, b, G.time, beat);
   }
 
   /* ---------------- billes ---------------- */

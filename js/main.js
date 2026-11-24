@@ -236,6 +236,9 @@
         MR.UI.refreshRecord();
       }
     }
+    if (m.rank === 1 && G.level.theme === 'finale' && !G.simulating && MR.Render.firework) {
+      for (let k = 0; k < 12; k++) setTimeout(function () { MR.Render.firework(); }, k * 220);
+    }
     if (m.rank === 1) {
       MR.UI.banner(m.cfg.name, !!G.level.elim);
       MR.Audio.fanfare();
@@ -417,6 +420,7 @@
           if (!G.simulating) {
             MR.FX.shatterRing(G.fx, rg.cx, rg.cy, rg.R, rg.rgb, rg.angle);
             MR.Audio.ringBreak(0);
+            if (L.theme === 'finale' && MR.Render.firework) MR.Render.firework(rg.rgb);
           }
           break;
         }
@@ -433,12 +437,14 @@
     // la vitesse des billes suit la taille du cercle actif (les grands cercles ne traînent pas)
     W.constSpeed = Math.max(L.speed || 520, rg.R * (L.speedPerR || 1.3));
     // chaque temps de la musique fait pulser les cercles
-    const beat = G.simulating || !MR.Audio.ready() ? G.raceTime * 116 / 60 : MR.Audio.beat();
+    const beat = G.simulating || !MR.Audio.ready() ? G.raceTime * MR.Audio.BPM / 60 : MR.Audio.beat();
     const bn = Math.floor(beat);
     if (bn !== G.beatN) {
       G.beatN = bn;
       for (let k = W.ringIdx; k < W.rings.length; k++) W.rings[k].pulse = 1;
     }
+    // niveau 10 : le trou du cercle actif s'ouvre grand sur chaque temps puis se resserre
+    if (L.breathe && rg.gapBase) rg.gap = rg.gapBase * (1 - L.breathe * 0.4 + L.breathe * Math.exp(-(beat - bn) * 3));
   }
 
   // niveau 5 : pas d'arrivée ; une bille qui touche un destructeur (ou reste coincée) explose, la dernière en vie gagne
@@ -888,7 +894,7 @@
     MR.Account.init();
     if (MR.store.get(KEY_SEEN, null) !== MR.VERSION) {
       MR.store.set(KEY_SEEN, MR.VERSION);
-      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveau 9 « Orbite Disco » en apesanteur et 44 nouvelles billes'); }, 900);
+      setTimeout(function () { MR.UI.toast('Nouveau en ' + MR.VERSION + ' : niveau 10 « Le Grand Final », titres jusqu’au niveau 75, 14 nouvelles billes'); }, 900);
     }
 
     const unlock = function () {

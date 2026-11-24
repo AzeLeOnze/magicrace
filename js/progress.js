@@ -10,8 +10,15 @@
   P.onNotify = function (fn) { notify = fn; };
 
   /* ---------------- niveaux ---------------- */
-  // passer du niveau n au niveau n+1 coûte 500 XP au départ, puis 9 % de plus à chaque niveau (0.2.2)
-  P.need = function (lv) { return Math.round(500 * Math.pow(1.09, lv - 1)); };
+  // passer du niveau n au niveau n+1 coûte 500 XP au départ, puis de plus en plus (0.2.14) : +9 % par niveau jusqu'au
+  // niveau 20, puis +5 % (21-30), +3 % (31-40), +2,5 % (41-50), +2 % (51-75), +1,6 % (76-100) et +1,25 % au-delà
+  const NEED = [0, 500];
+  function growth(lv) { return lv <= 20 ? 1.09 : lv <= 30 ? 1.05 : lv <= 40 ? 1.03 : lv <= 50 ? 1.025 : lv <= 75 ? 1.02 : lv <= 100 ? 1.016 : 1.0125; }
+  P.need = function (lv) {
+    lv = Math.max(1, Math.floor(lv));
+    while (NEED.length <= lv) { const k = NEED.length; NEED.push(NEED[k - 1] * growth(k)); }
+    return Math.round(NEED[lv]);
+  };
   P.levelOf = function (xp) {
     let lv = 1, rest = Math.max(0, xp || 0);
     while (rest >= P.need(lv) && lv < 5000) { rest -= P.need(lv); lv++; }
@@ -26,10 +33,22 @@
     'Accro au Dancefloor I', 'Accro au Dancefloor II', 'Accro au Dancefloor III', 'Accro au Dancefloor IV',
     'Discobreaker I', 'Discobreaker II', 'Discobreaker III',
     'Ultra Discoman I', 'Ultra Discoman II', 'Ultra Discoman III',
-    'Roi du Disco I', 'Roi du Disco II', 'Roi du Disco III',
-    'Légende du Groove I', 'Légende du Groove II', 'Légende du Groove III',
-    'Maître des Facettes I', 'Maître des Facettes II', 'Maître des Facettes III',
-    'Disco Immortel', 'Dieu du Disco'
+    // 25 à 75 (0.2.14)
+    'Roi du Dancefloor I', 'Roi du Dancefloor II', 'Roi du Dancefloor III',
+    'Seigneur des Paillettes I', 'Seigneur des Paillettes II', 'Seigneur des Paillettes III',
+    'Prince du Groove I', 'Prince du Groove II', 'Prince du Groove III', 'Prince du Groove IV',
+    'Maître des Facettes I', 'Maître des Facettes II', 'Maître des Facettes III', 'Maître des Facettes IV',
+    'Virtuose du Vinyle I', 'Virtuose du Vinyle II', 'Virtuose du Vinyle III', 'Virtuose du Vinyle IV',
+    'Champion du Funk I', 'Champion du Funk II', 'Champion du Funk III', 'Champion du Funk IV',
+    'Star de la Piste I', 'Star de la Piste II', 'Star de la Piste III', 'Star de la Piste IV',
+    'Icône Disco I', 'Icône Disco II', 'Icône Disco III', 'Icône Disco IV',
+    'Héros du Néon I', 'Héros du Néon II', 'Héros du Néon III', 'Héros du Néon IV',
+    'Légende du Groove I', 'Légende du Groove II', 'Légende du Groove III', 'Légende du Groove IV',
+    'Titan des Facettes I', 'Titan des Facettes II', 'Titan des Facettes III',
+    'Empereur Disco I', 'Empereur Disco II', 'Empereur Disco III',
+    'Immortel du Dancefloor I', 'Immortel du Dancefloor II', 'Immortel du Dancefloor III',
+    'Demi-dieu du Disco I', 'Demi-dieu du Disco II', 'Demi-dieu du Disco III',
+    'Dieu du Disco'
   ];
   P.title = function (lv) { return P.TITLES[Math.max(1, Math.min(lv || 1, P.TITLES.length)) - 1]; };
   // récompenses en atteignant un niveau : toujours un paquet, plus des bonus tous les 5 niveaux (le cycle recommence à chaque centaine)

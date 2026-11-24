@@ -1,5 +1,18 @@
 # MagicRace — journal des versions
 
+## 0.2.14 — 25 novembre 2026
+- Nouveau niveau 10 « Le Grand Final », le dernier de la Zone Disco, dans l'esprit du niveau 4 : apesanteur, une bille qui passe par le trou du plus petit cercle explose et le cercle se brise, la dernière en vie gagne.
+  - Une boule à facettes géante tourne au centre et renvoie les billes.
+  - Les cercles sont couverts de carreaux de miroir qui scintillent, en or, rose, cyan et violet. Ils tournent un sens puis l'autre.
+  - Le trou du cercle actif s'ouvre grand sur chaque temps de la musique, puis se resserre.
+  - Le décor est une scène de concert : écran géant, projecteurs qui balaient la salle, foule avec les téléphones allumés.
+  - Un feu d'artifice part à chaque cercle brisé, et un grand bouquet salue la gagnante.
+- Titres de niveau refaits du niveau 25 au niveau 75, de « Roi du Dancefloor I » à « Dieu du Disco ».
+- XP : chaque niveau demande toujours 9 % de plus que le précédent jusqu'au niveau 20, puis 5 % (21 à 30), 3 % (31 à 40), 2,5 % (41 à 50), 2 % (51 à 75), 1,6 % (76 à 100) et 1,25 % au-delà. Les niveaux déjà mérités avec ton XP sont accordés, avec leurs récompenses, au prochain gain d'XP.
+- 14 nouvelles billes, 225 cartes au total :
+  - 5 rares : Carte au trésor, Pierre de lune, Origami, Flocon et Mandala ;
+  - 9 peu communes : Pomme, Citron vert, Vichy, Ciel étoilé, Écossais, Abeille, Cactus, Feuille et Brique.
+
 ## 0.2.13 — 24 novembre 2026
 - Nouveau niveau 9 « Orbite Disco », dans l'espace : étoiles, nébuleuses, une planète à anneaux et un satellite boule à facettes.
   - Rampe de lancement : bumpers, picots, slingshots et deux bras qui tournent en sens inverse, puis un sas qui regroupe les billes ;
